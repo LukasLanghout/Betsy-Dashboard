@@ -39,7 +39,7 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
         while (retries > 0) {
           try {
             response = await hf.chatCompletion({
-              model: 'mistralai/Mistral-7B-Instruct-v0.3',
+              model: 'HuggingFaceH4/zephyr-7b-beta',
               messages: [
                 {
                   role: "user",
@@ -113,7 +113,7 @@ Provide your insights in a clear, bulleted list. Do not include any introductory
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full text-indigo-400 gap-3">
             <Loader2 className="w-6 h-6 animate-spin" />
-            <span className="text-sm">Analyzing supply chain data with Mistral-7B...</span>
+            <span className="text-sm">Analyzing supply chain data with Zephyr-7B...</span>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-full text-rose-400 gap-3 text-center">
