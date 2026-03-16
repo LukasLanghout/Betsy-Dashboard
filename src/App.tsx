@@ -6,6 +6,7 @@ import { SupplierScorecard } from './components/SupplierScorecard';
 import { OrderPipeline } from './components/OrderPipeline';
 import { LowStockAlerts } from './components/LowStockAlerts';
 import { SupplierComparisonModal } from './components/SupplierComparisonModal';
+import { AIInsights } from './components/AIInsights';
 import { supabase, hasSupabaseConfig } from './lib/supabase';
 
 export default function App() {
@@ -233,11 +234,20 @@ export default function App() {
           <div className="lg:col-span-2">
             <StockOutPredictor data={filteredInventory} />
           </div>
-          <div className="lg:col-span-1">
-            <LowStockAlerts 
-              inventory={filteredInventory} 
-              onDrillDown={(product) => setDrillDownProduct(product)} 
-            />
+          <div className="lg:col-span-1 flex flex-col gap-6">
+            <div className="flex-1">
+              <LowStockAlerts 
+                inventory={filteredInventory} 
+                onDrillDown={(product) => setDrillDownProduct(product)} 
+              />
+            </div>
+            <div className="h-[300px]">
+              <AIInsights 
+                inventory={filteredInventory} 
+                suppliers={suppliers} 
+                orders={orders} 
+              />
+            </div>
           </div>
         </div>
 
