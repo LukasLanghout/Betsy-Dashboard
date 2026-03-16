@@ -31,9 +31,16 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
         const topSuppliers = suppliers.sort((a, b) => (b.reliability_score || 0) - (a.reliability_score || 0)).slice(0, 3);
         const pendingOrders = orders.find(o => o.stage === 'Pending')?.count || 0;
 
-        const prompt = `
-<s>[INST] You are an expert procurement and supply chain AI assistant named Betsy. 
-Analyze the following supply chain data and provide 3 concise, actionable insights or recommendations.
+        const response = await hf.chatCompletion({
+          model: 'mistralai/Mistral-7B-Instruct-v0.3',
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert procurement and supply chain AI assistant named Betsy."
+            },
+            {
+              role: "user",
+              content: `Analyze the following supply chain data and provide 3 concise, actionable insights or recommendations.
 
 Data Summary:
 - Total Inventory Items: ${inventory.length}
@@ -41,23 +48,26 @@ Data Summary:
 - Top 3 Reliable Suppliers: ${topSuppliers.map(s => s.name).join(', ')}
 - Pending Orders: ${pendingOrders}
 
-Provide your insights in a clear, bulleted list. Do not include any introductory or concluding remarks. [/INST]
-`;
-
-        const response = await hf.textGeneration({
-          model: 'mistralai/Mistral-7B-Instruct-v0.3',
-          inputs: prompt,
-          parameters: {
-            max_new_tokens: 250,
-            temperature: 0.3,
-            return_full_text: false,
-          }
+Provide your insights in a clear, bulleted list. Do not include any introductory or concluding remarks.`
+            }
+          ],
+          max_tokens: 250,
+          temperature: 0.3,
         });
 
-        setInsights(response.generated_text.trim());
+        const generatedText = response.choices[0]?.message?.content || '';
+        setInsights(generatedText.trim());
       } catch (err: any) {
         console.error('Error generating insights:', err);
-        setError(err.message || 'Failed to generate insights from Mistral AI.');
+        
+        let errorMessage = err.message || 'Failed to generate insights from Mistral AI.';
+        
+        // Handle specific permission error
+        if (errorMessage.includes('sufficient permissions to call Inference Providers')) {
+          errorMessage = 'Your Hugging Face token does not have the correct permissions. Please create a new Fine-grained token at huggingface.co/settings/tokens and ensure you check the "Make calls to the serverless Inference API" box under "Inference".';
+        }
+        
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
