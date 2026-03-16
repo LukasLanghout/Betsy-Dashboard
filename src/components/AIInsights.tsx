@@ -12,6 +12,7 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
   const [insights, setInsights] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState<number>(0);
 
   useEffect(() => {
     async function generateInsights() {
@@ -31,16 +32,22 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
         const topSuppliers = suppliers.sort((a, b) => (b.reliability_score || 0) - (a.reliability_score || 0)).slice(0, 3);
         const pendingOrders = orders.find(o => o.stage === 'Pending')?.count || 0;
 
-        const response = await hf.chatCompletion({
-          model: 'mistralai/Mistral-7B-Instruct-v0.3',
-          messages: [
-            {
-              role: "system",
-              content: "You are an expert procurement and supply chain AI assistant named Betsy."
-            },
-            {
-              role: "user",
-              content: `Analyze the following supply chain data and provide 3 concise, actionable insights or recommendations.
+        let response;
+        let retries = 3;
+        let delay = 1000;
+
+        while (retries > 0) {
+          try {
+            response = await hf.chatCompletion({
+              model: 'mistralai/Mistral-7B-Instruct-v0.3',
+              messages: [
+                {
+                  role: "system",
+                  content: "You are an expert procurement and supply chain AI assistant named Betsy."
+                },
+                {
+                  role: "user",
+                  content: `Analyze the following supply chain data and provide 3 concise, actionable insights or recommendations.
 
 Data Summary:
 - Total Inventory Items: ${inventory.length}
@@ -49,13 +56,27 @@ Data Summary:
 - Pending Orders: ${pendingOrders}
 
 Provide your insights in a clear, bulleted list. Do not include any introductory or concluding remarks.`
+                }
+              ],
+              max_tokens: 250,
+              temperature: 0.3,
+            });
+            break; // Success, exit retry loop
+          } catch (err: any) {
+            retries--;
+            const isPermissionError = err.message?.includes('sufficient permissions');
+            
+            if (retries === 0 || isPermissionError) {
+              throw err; // Throw if out of retries or it's a hard permission error
             }
-          ],
-          max_tokens: 250,
-          temperature: 0.3,
-        });
+            
+            console.warn(`HF API provider error, retrying in ${delay}ms... (${retries} retries left)`, err);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2; // Exponential backoff
+          }
+        }
 
-        const generatedText = response.choices[0]?.message?.content || '';
+        const generatedText = response?.choices[0]?.message?.content || '';
         setInsights(generatedText.trim());
       } catch (err: any) {
         console.error('Error generating insights:', err);
@@ -65,6 +86,8 @@ Provide your insights in a clear, bulleted list. Do not include any introductory
         // Handle specific permission error
         if (errorMessage.includes('sufficient permissions to call Inference Providers')) {
           errorMessage = 'Your Hugging Face token does not have the correct permissions. Please create a new Fine-grained token at huggingface.co/settings/tokens and ensure you check the "Make calls to the serverless Inference API" box under "Inference".';
+        } else if (errorMessage.includes('HTTP error occurred when requesting the provider')) {
+          errorMessage = 'The Hugging Face AI provider is currently overloaded or temporarily unavailable. Please try again in a moment.';
         }
         
         setError(errorMessage);
@@ -74,7 +97,7 @@ Provide your insights in a clear, bulleted list. Do not include any introductory
     }
 
     generateInsights();
-  }, [inventory, suppliers, orders]);
+  }, [inventory, suppliers, orders, retryTrigger]);
 
   return (
     <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-indigo-500/20 rounded-2xl p-6 h-full flex flex-col">
@@ -98,6 +121,12 @@ Provide your insights in a clear, bulleted list. Do not include any introductory
           <div className="flex flex-col items-center justify-center h-full text-rose-400 gap-3 text-center">
             <AlertCircle className="w-6 h-6" />
             <span className="text-sm">{error}</span>
+            <button 
+              onClick={() => setRetryTrigger(prev => prev + 1)}
+              className="mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm transition-colors"
+            >
+              Retry
+            </button>
           </div>
         ) : insights ? (
           <div className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
