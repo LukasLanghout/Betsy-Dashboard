@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Package, AlertTriangle, CheckCircle2, Filter, BrainCircuit, Loader2 } from 'lucide-react';
+import { Package, AlertTriangle, CheckCircle2, Filter, BrainCircuit, Loader2, Database } from 'lucide-react';
 import { KPICard } from './components/KPICard';
 import { StockOutPredictor } from './components/StockOutPredictor';
 import { SupplierScorecard } from './components/SupplierScorecard';
 import { OrderPipeline } from './components/OrderPipeline';
 import { LowStockAlerts } from './components/LowStockAlerts';
 import { SupplierComparisonModal } from './components/SupplierComparisonModal';
-import { supabase } from './lib/supabase';
+import { supabase, hasSupabaseConfig } from './lib/supabase';
 
 export default function App() {
   const [inventory, setInventory] = useState<any[]>([]);
@@ -21,29 +21,62 @@ export default function App() {
 
   useEffect(() => {
     async function fetchDashboardData() {
+      if (!hasSupabaseConfig) {
+        setLoading(false);
+        return;
+      }
+
       try {
         // Haal alle data tegelijk (concurrently) op uit Supabase
         const [
           { data: invData },
           { data: supData },
           { data: ordData },
-          { data: invcData }
+          { data: invcData },
+          { data: supPricesData }
         ] = await Promise.all([
-          supabase.from('inventory').select('*'),
+          supabase.from('inventory').select('*, products(*)'),
           supabase.from('suppliers').select('*'),
           supabase.from('orders').select('*'),
-          supabase.from('invoices').select('*')
+          supabase.from('invoices').select('*'),
+          supabase.from('supplier_prices').select('*')
         ]);
 
-        setInventory(invData || []);
-        setSuppliers(supData || []);
+        // Map inventory om de geneste 'products' data plat te slaan
+        const formattedInventory = (invData || []).map((item: any) => {
+          const product = Array.isArray(item.products) ? item.products[0] : item.products;
+          return {
+            ...item,
+            name: product?.name || 'Unknown Product',
+            category: product?.category || 'Uncategorized',
+            base_price: product?.base_price || 0,
+          };
+        });
+        setInventory(formattedInventory);
+
+        // Bereken gemiddelde levertijd en prijs index voor suppliers
+        const formattedSuppliers = (supData || []).map((sup: any) => {
+          const prices = (supPricesData || []).filter((p: any) => p.supplier_id === sup.id);
+          const avgDelivery = prices.length ? prices.reduce((sum: number, p: any) => sum + p.delivery_days, 0) / prices.length : 5;
+          const avgPrice = prices.length ? prices.reduce((sum: number, p: any) => sum + p.price, 0) / prices.length : 100;
+          
+          return {
+            ...sup,
+            delivery_days: avgDelivery,
+            avg_price_index: avgPrice
+          };
+        });
+        setSuppliers(formattedSuppliers);
+        
         setInvoices(invcData || []);
 
-        // Groepeer orders op 'stage' voor de funnel chart
+        // Groepeer orders op 'status' (in plaats van stage) voor de funnel chart
         if (ordData) {
           const pipeline = ordData.reduce((acc: any, order: any) => {
-            const stage = order.stage || 'Pending';
-            acc[stage] = (acc[stage] || 0) + 1;
+            // Zet de status om naar een leesbare vorm met een hoofdletter
+            const statusRaw = order.status || 'pending';
+            const status = statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1);
+            acc[status] = (acc[status] || 0) + 1;
             return acc;
           }, {});
           
@@ -52,6 +85,13 @@ export default function App() {
             stage,
             count: pipeline[stage] || 0
           })).filter(item => item.count > 0);
+          
+          // Als er onbekende statussen zijn, voeg ze toe
+          Object.keys(pipeline).forEach(key => {
+            if (!stageOrder.includes(key) && pipeline[key] > 0) {
+              formattedPipeline.push({ stage: key, count: pipeline[key] });
+            }
+          });
           
           setOrders(formattedPipeline.length > 0 ? formattedPipeline : []);
         }
@@ -88,6 +128,34 @@ export default function App() {
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin" />
           <p className="text-sm font-medium tracking-wider uppercase text-gray-400">Loading Betsy AI Data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasSupabaseConfig) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-gray-100 p-6">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 max-w-lg w-full text-center shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center mx-auto mb-6 border border-indigo-500/30">
+            <Database className="w-8 h-8 text-indigo-400" />
+          </div>
+          <h2 className="text-2xl font-bold mb-3 text-white">Supabase Setup Required</h2>
+          <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+            To view your live dashboard, you need to connect your Supabase database. 
+            Please add your Supabase URL and Anon Key to the environment variables.
+          </p>
+          
+          <div className="text-left bg-black/40 p-5 rounded-xl border border-white/5 text-xs font-mono text-gray-300 space-y-3">
+            <div>
+              <span className="text-indigo-400">VITE_SUPABASE_URL</span>=
+              <span className="text-emerald-400">"https://your-project.supabase.co"</span>
+            </div>
+            <div>
+              <span className="text-indigo-400">VITE_SUPABASE_ANON_KEY</span>=
+              <span className="text-emerald-400">"your-anon-key"</span>
+            </div>
+          </div>
         </div>
       </div>
     );

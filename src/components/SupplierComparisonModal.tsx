@@ -17,29 +17,29 @@ export function SupplierComparisonModal({ product, onClose }: SupplierComparison
       
       try {
         // Haal supplier prijzen op voor dit product en join met de 'suppliers' tabel voor de naam.
-        // Let op: Dit vereist dat je foreign keys goed zijn ingesteld in Supabase.
         const { data, error } = await supabase
           .from('supplier_prices')
           .select(`
             price,
             delivery_days,
-            reliability_score,
-            supplierId,
-            suppliers ( name )
+            supplier_id,
+            suppliers ( name, reliability_score )
           `)
-          .eq('productId', product.id)
+          .eq('product_id', product.product_id)
           .order('price', { ascending: true });
 
         if (error) throw error;
         
         if (data) {
-          const formatted = data.map((item: any) => ({
-            ...item,
-            // Supabase kan een array of object teruggeven afhankelijk van de relatie
-            supplierName: Array.isArray(item.suppliers) 
-              ? item.suppliers[0]?.name 
-              : item.suppliers?.name || 'Unknown Supplier',
-          }));
+          const formatted = data.map((item: any) => {
+            const supplierData = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
+            return {
+              ...item,
+              supplierName: supplierData?.name || 'Unknown Supplier',
+              reliability_score: supplierData?.reliability_score || 0,
+              supplierId: item.supplier_id
+            };
+          });
           setAvailableSuppliers(formatted);
         }
       } catch (error) {
