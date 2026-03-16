@@ -42,12 +42,10 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
               model: 'mistralai/Mistral-7B-Instruct-v0.3',
               messages: [
                 {
-                  role: "system",
-                  content: "You are an expert procurement and supply chain AI assistant named Betsy."
-                },
-                {
                   role: "user",
-                  content: `Analyze the following supply chain data and provide 3 concise, actionable insights or recommendations.
+                  content: `You are an expert procurement and supply chain AI assistant named Betsy.
+
+Analyze the following supply chain data and provide 3 concise, actionable insights or recommendations.
 
 Data Summary:
 - Total Inventory Items: ${inventory.length}

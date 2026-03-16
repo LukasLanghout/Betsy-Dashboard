@@ -11,7 +11,7 @@ export function OrderPipeline({ data }: OrderPipelineProps) {
   return (
     <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 h-[400px] flex flex-col">
       <h3 className="text-white font-semibold mb-6">Order Pipeline</h3>
-      <div className="flex-1 w-full">
+      <div className="flex-1 w-full min-h-0 min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" vertical={false} />

@@ -16,7 +16,7 @@ export function SupplierScorecard({ data }: SupplierScorecardProps) {
   return (
     <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 h-[400px] flex flex-col">
       <h3 className="text-white font-semibold mb-2">Supplier Scorecard</h3>
-      <div className="flex-1 w-full">
+      <div className="flex-1 w-full min-h-0 min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
             <PolarGrid stroke="#ffffff20" />
