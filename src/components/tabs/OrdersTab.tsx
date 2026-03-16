@@ -23,8 +23,8 @@ export function OrdersTab({ orders, deliverOrder }: any) {
             {orders.map((order: any, idx: number) => (
               <tr key={idx} className="hover:bg-white/5 transition-colors">
                 <td className="px-6 py-4 text-gray-400 font-mono text-xs">#PO-{(order.id || idx).toString().padStart(4, '0')}</td>
-                <td className="px-6 py-4 text-white font-medium">{order.product_name || `Product ${order.product_id}`}</td>
-                <td className="px-6 py-4">{order.supplier_name || `Supplier ${order.supplier_id}`}</td>
+                <td className="px-6 py-4 text-white font-medium">{order.products?.name || order.product_name || `Product ${order.product_id}`}</td>
+                <td className="px-6 py-4">{order.suppliers?.name || order.supplier_name || `Supplier ${order.supplier_id}`}</td>
                 <td className="px-6 py-4">{order.quantity || 0} units</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md border ${
@@ -39,7 +39,7 @@ export function OrdersTab({ orders, deliverOrder }: any) {
                 <td className="px-6 py-4">
                   {order.status === 'pending' && (
                     <button 
-                      onClick={() => deliverOrder(order.id)}
+                      onClick={() => deliverOrder(order)}
                       className="text-[10px] font-bold text-emerald-500 hover:text-emerald-400 uppercase tracking-wider"
                     >
                       Mark Delivered

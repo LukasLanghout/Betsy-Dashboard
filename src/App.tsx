@@ -54,7 +54,7 @@ export default function App() {
       ] = await Promise.all([
         supabase.from('inventory').select('*, products(*)'),
         supabase.from('suppliers').select('*'),
-        supabase.from('orders').select('*'),
+        supabase.from('orders').select('*, products(*), suppliers(*)'),
         supabase.from('invoices').select('*'),
         supabase.from('supplier_prices').select('*')
       ]);
@@ -253,10 +253,18 @@ export default function App() {
     }
   };
 
-  const deliverOrder = async (orderId: number) => {
+  const deliverOrder = async (order: any) => {
     try {
-      const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', orderId);
-      if (!error) fetchData();
+      const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', order.id);
+      if (!error) {
+        // Update stock level
+        const currentItem = inventory.find((item: any) => item.product_id === order.product_id);
+        if (currentItem) {
+          const newStock = (currentItem.stock_level || 0) + (order.quantity || 0);
+          await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', order.product_id);
+        }
+        fetchData();
+      }
     } catch (error) {
       console.error('Error delivering order:', error);
     }
