@@ -72,7 +72,7 @@ export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAd
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">Unit Price</span>
-                        <span className="text-gray-300">€{prop.suggested_supplier.price}</span>
+                        <span className="text-gray-300">€{Number(prop.suggested_supplier.price || 0).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">Delivery</span>
@@ -124,7 +124,7 @@ export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAd
                         <div className="space-y-2 mb-6">
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-500">Price</span>
-                            <span className="text-white font-mono">€{prop.suggested_supplier.price}</span>
+                            <span className="text-white font-mono">€{Number(prop.suggested_supplier.price || 0).toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-500">Delivery</span>
@@ -150,7 +150,7 @@ export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAd
                           <div className="space-y-2 mb-6">
                             <div className="flex justify-between text-xs">
                               <span className="text-gray-500">Price</span>
-                              <span className="text-white font-mono">€{alt.price}</span>
+                              <span className="text-white font-mono">€{Number(alt.price || 0).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-xs">
                               <span className="text-gray-500">Delivery</span>

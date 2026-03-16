@@ -114,17 +114,64 @@ export default function App() {
       const newProposals = formattedInventory
         .filter(item => item.stock_level < item.reorder_point)
         .map(item => {
-          const suggestedSupplier = formattedSuppliers[0] || { name: 'Default', price: 10, delivery_days: 5, reliability_score: 0.9 };
+          const productId = item.product_id || item.id;
+          const predicted_stockout_days = Math.max(1, Math.floor((item.stock_level / (item.avg_weekly_sales || 10)) * 7));
+          
+          // Find specific supplier prices for this product
+          let productSuppliers = (supPricesData || [])
+            .filter((sp: any) => sp.product_id === productId)
+            .map((sp: any) => {
+              const supplier = (supData || []).find((s: any) => s.id === sp.supplier_id);
+              return {
+                id: supplier?.id,
+                name: supplier?.name || 'Unknown',
+                price: sp.price || item.base_price || 10,
+                delivery_days: sp.delivery_days || 5,
+                reliability_score: supplier?.reliability_score || 0.9,
+                contact: supplier?.contact
+              };
+            })
+            .filter((s: any) => s.id); // Ensure we found a supplier
+
+          // Sort productSuppliers to find the best one
+          productSuppliers.sort((a: any, b: any) => {
+            const isEmergency = predicted_stockout_days <= Math.min(a.delivery_days, b.delivery_days) + 2;
+            if (isEmergency) {
+              // Prioritize delivery days, then price
+              if (a.delivery_days !== b.delivery_days) return a.delivery_days - b.delivery_days;
+              return a.price - b.price;
+            } else {
+              // Prioritize price, then reliability
+              if (a.price !== b.price) return a.price - b.price;
+              return b.reliability_score - a.reliability_score;
+            }
+          });
+
+          // Fallback if no specific prices found
+          if (productSuppliers.length === 0) {
+            productSuppliers = formattedSuppliers.map(s => ({
+              id: s.id,
+              name: s.name,
+              price: item.base_price || 10,
+              delivery_days: s.delivery_days || 5,
+              reliability_score: s.reliability_score || 0.9,
+              contact: s.contact
+            }));
+          }
+
+          const suggestedSupplier = productSuppliers[0] || { name: 'Default', price: 10, delivery_days: 5, reliability_score: 0.9 };
+          const alternatives = productSuppliers.slice(1, 4);
+
           return {
-            product_id: item.product_id || item.id,
+            product_id: productId,
             product_name: item.name,
             current_stock: item.stock_level,
             avg_weekly_sales: item.avg_weekly_sales || 10,
-            predicted_stockout_days: Math.max(1, Math.floor((item.stock_level / (item.avg_weekly_sales || 10)) * 7)),
+            predicted_stockout_days,
             reorder_point: item.reorder_point,
-            recommended_order: (item.reorder_point * 2) - item.stock_level,
+            recommended_order: Math.max(1, (item.reorder_point * 2) - item.stock_level),
             suggested_supplier: suggestedSupplier,
-            alternatives: formattedSuppliers.slice(1, 3),
+            alternatives: alternatives,
             reasoning: "Analyzing..."
           };
         });
