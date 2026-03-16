@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrainCircuit, Loader2, Sparkles, AlertCircle } from 'lucide-react';
-import { hf, hasHfConfig } from '../lib/mistral';
+import { generateGroqCompletion, hasGroqConfig } from '../lib/groq';
 
 interface AIInsightsProps {
   inventory: any[];
@@ -16,8 +16,8 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
 
   useEffect(() => {
     async function generateInsights() {
-      if (!hasHfConfig) {
-        setError('Hugging Face Token is missing. Please add VITE_HF_TOKEN to your environment variables.');
+      if (!hasGroqConfig) {
+        setError('Groq API Key is missing. Please add VITE_GROQ_API_KEY to your environment variables.');
         return;
       }
 
@@ -38,14 +38,14 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
 
         while (retries > 0) {
           try {
-            response = await hf.chatCompletion({
-              model: 'HuggingFaceH4/zephyr-7b-beta',
-              messages: [
-                {
-                  role: "user",
-                  content: `You are an expert procurement and supply chain AI assistant named Betsy.
-
-Analyze the following supply chain data and provide 3 concise, actionable insights or recommendations.
+            response = await generateGroqCompletion([
+              {
+                role: "system",
+                content: "You are an expert procurement and supply chain AI assistant named Betsy."
+              },
+              {
+                role: "user",
+                content: `Analyze the following supply chain data and provide 3 concise, actionable insights or recommendations.
 
 Data Summary:
 - Total Inventory Items: ${inventory.length}
@@ -54,38 +54,34 @@ Data Summary:
 - Pending Orders: ${pendingOrders}
 
 Provide your insights in a clear, bulleted list. Do not include any introductory or concluding remarks.`
-                }
-              ],
-              max_tokens: 250,
-              temperature: 0.3,
-            });
+              }
+            ]);
             break; // Success, exit retry loop
           } catch (err: any) {
             retries--;
-            const isPermissionError = err.message?.includes('sufficient permissions');
+            const isAuthError = err.message?.toLowerCase().includes('api key') || err.message?.includes('401');
             
-            if (retries === 0 || isPermissionError) {
-              throw err; // Throw if out of retries or it's a hard permission error
+            if (retries === 0 || isAuthError) {
+              throw err; // Throw if out of retries or it's a hard auth error
             }
             
-            console.warn(`HF API provider error, retrying in ${delay}ms... (${retries} retries left)`, err);
+            console.warn(`Groq API error, retrying in ${delay}ms... (${retries} retries left)`, err);
             await new Promise(resolve => setTimeout(resolve, delay));
             delay *= 2; // Exponential backoff
           }
         }
 
-        const generatedText = response?.choices[0]?.message?.content || '';
+        const generatedText = response?.choices?.[0]?.message?.content || '';
         setInsights(generatedText.trim());
       } catch (err: any) {
         console.error('Error generating insights:', err);
         
-        let errorMessage = err.message || 'Failed to generate insights from Mistral AI.';
+        let errorMessage = err.message || 'Failed to generate insights from Groq AI.';
         
-        // Handle specific permission error
-        if (errorMessage.includes('sufficient permissions to call Inference Providers')) {
-          errorMessage = 'Your Hugging Face token does not have the correct permissions. Please create a new Fine-grained token at huggingface.co/settings/tokens and ensure you check the "Make calls to the serverless Inference API" box under "Inference".';
-        } else if (errorMessage.includes('HTTP error occurred when requesting the provider')) {
-          errorMessage = 'The Hugging Face AI provider is currently overloaded or temporarily unavailable. Please try again in a moment.';
+        if (errorMessage.toLowerCase().includes('api key') || errorMessage.includes('401')) {
+          errorMessage = 'Your Groq API key is invalid or missing. Please check your VITE_GROQ_API_KEY environment variable.';
+        } else if (errorMessage.includes('429')) {
+          errorMessage = 'Rate limit exceeded. Please try again in a moment.';
         }
         
         setError(errorMessage);
@@ -113,7 +109,7 @@ Provide your insights in a clear, bulleted list. Do not include any introductory
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full text-indigo-400 gap-3">
             <Loader2 className="w-6 h-6 animate-spin" />
-            <span className="text-sm">Analyzing supply chain data with Zephyr-7B...</span>
+            <span className="text-sm">Analyzing supply chain data with Llama 3.3 70B...</span>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-full text-rose-400 gap-3 text-center">
