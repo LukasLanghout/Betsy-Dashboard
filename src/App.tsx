@@ -1,40 +1,97 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import { useState, useMemo } from 'react';
-import { Package, AlertTriangle, CheckCircle2, Filter, BrainCircuit } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Package, AlertTriangle, CheckCircle2, Filter, BrainCircuit, Loader2 } from 'lucide-react';
 import { KPICard } from './components/KPICard';
 import { StockOutPredictor } from './components/StockOutPredictor';
 import { SupplierScorecard } from './components/SupplierScorecard';
 import { OrderPipeline } from './components/OrderPipeline';
 import { LowStockAlerts } from './components/LowStockAlerts';
 import { SupplierComparisonModal } from './components/SupplierComparisonModal';
-import { inventoryData, supplierData, orderPipelineData, invoiceData } from './data/mockData';
+import { supabase } from './lib/supabase';
 
 export default function App() {
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedSupplier, setSelectedSupplier] = useState<string>('All');
   const [drillDownProduct, setDrillDownProduct] = useState<any | null>(null);
 
-  // Derived Data & KPIs
-  const categories = ['All', ...Array.from(new Set(inventoryData.map(item => item.category)))];
-  const suppliers = ['All', ...supplierData.map(s => s.name)];
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        // Haal alle data tegelijk (concurrently) op uit Supabase
+        const [
+          { data: invData },
+          { data: supData },
+          { data: ordData },
+          { data: invcData }
+        ] = await Promise.all([
+          supabase.from('inventory').select('*'),
+          supabase.from('suppliers').select('*'),
+          supabase.from('orders').select('*'),
+          supabase.from('invoices').select('*')
+        ]);
+
+        setInventory(invData || []);
+        setSuppliers(supData || []);
+        setInvoices(invcData || []);
+
+        // Groepeer orders op 'stage' voor de funnel chart
+        if (ordData) {
+          const pipeline = ordData.reduce((acc: any, order: any) => {
+            const stage = order.stage || 'Pending';
+            acc[stage] = (acc[stage] || 0) + 1;
+            return acc;
+          }, {});
+          
+          const stageOrder = ['Pending', 'Approved', 'Processing', 'Shipped', 'Delivered'];
+          const formattedPipeline = stageOrder.map(stage => ({
+            stage,
+            count: pipeline[stage] || 0
+          })).filter(item => item.count > 0);
+          
+          setOrders(formattedPipeline.length > 0 ? formattedPipeline : []);
+        }
+      } catch (error) {
+        console.error("Fout bij het ophalen van Supabase data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
+  // Afgeleide Data & Filters
+  const categories = ['All', ...Array.from(new Set(inventory.map(item => item.category).filter(Boolean)))];
+  const supplierNames = ['All', ...suppliers.map(s => s.name).filter(Boolean)];
 
   const filteredInventory = useMemo(() => {
-    return inventoryData.filter(item => {
+    return inventory.filter(item => {
       if (selectedCategory !== 'All' && item.category !== selectedCategory) return false;
-      // Supplier filter would require joining with supplierPrices, simplifying for UI demo
       return true;
     });
-  }, [selectedCategory, selectedSupplier]);
+  }, [inventory, selectedCategory, selectedSupplier]);
 
-  const inventoryValue = filteredInventory.reduce((sum, item) => sum + (item.stock_level * item.base_price), 0);
-  const riskLevel = filteredInventory.filter(item => item.stock_level < item.reorder_point).length;
+  const inventoryValue = filteredInventory.reduce((sum, item) => sum + ((item.stock_level || 0) * (item.base_price || 0)), 0);
+  const riskLevel = filteredInventory.filter(item => (item.stock_level || 0) < (item.reorder_point || 0)).length;
   
-  const cleanInvoices = invoiceData.filter(inv => inv.ai_check_status === 'verified_clean').length;
-  const aiAccuracy = Math.round((cleanInvoices / invoiceData.length) * 100);
+  const cleanInvoices = invoices.filter(inv => inv.ai_check_status === 'verified_clean').length;
+  const aiAccuracy = invoices.length > 0 ? Math.round((cleanInvoices / invoices.length) * 100) : 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-indigo-400">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <p className="text-sm font-medium tracking-wider uppercase text-gray-400">Loading Betsy AI Data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-gray-100 font-sans selection:bg-indigo-500/30">
@@ -69,7 +126,7 @@ export default function App() {
                 onChange={(e) => setSelectedSupplier(e.target.value)}
                 className="bg-transparent text-sm text-white outline-none cursor-pointer"
               >
-                {suppliers.map(s => <option key={s} value={s} className="bg-gray-900">{s}</option>)}
+                {supplierNames.map(s => <option key={s} value={s} className="bg-gray-900">{s}</option>)}
               </select>
             </div>
           </div>
@@ -90,8 +147,8 @@ export default function App() {
             title="Risk Level (Low Stock)" 
             value={riskLevel}
             icon={<AlertTriangle className="w-5 h-5" />}
-            trend="-1"
-            trendUp={true}
+            trend={riskLevel > 0 ? "Action Required" : "Healthy"}
+            trendUp={riskLevel === 0}
             className={riskLevel > 0 ? "border-rose-500/30 bg-rose-500/5" : ""}
           />
           <KPICard 
@@ -117,8 +174,8 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <SupplierScorecard data={supplierData} />
-          <OrderPipeline data={orderPipelineData} />
+          <SupplierScorecard data={suppliers} />
+          <OrderPipeline data={orders} />
         </div>
       </main>
 
