@@ -126,10 +126,8 @@ export function SupplierComparisonModal({ product, onClose, onOrderCreated }: Su
       setSuccessMessage(`PO successfully created for ${supplier.supplierName}!`);
       if (onOrderCreated) onOrderCreated();
       
-      setTimeout(() => {
-        setSuccessMessage(null);
-        onClose();
-      }, 2000);
+      // Close immediately to show the redirect to the Proposals tab
+      onClose();
     } catch (error) {
       console.error("Error creating PO:", error);
       alert("Failed to create Purchase Order. Please try again.");
