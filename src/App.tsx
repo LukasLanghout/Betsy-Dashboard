@@ -275,15 +275,28 @@ export default function App() {
         const taxPercentage = 21;
         const totalAmount = subtotal * (1 + taxPercentage / 100);
 
-        await supabase.from('invoices').insert({
+        const { error: insertError } = await supabase.from('invoices').insert({
           invoice_number: invoiceNumber,
+          order_id: order.id,
           vendor: vendorName,
           invoice_date: new Date().toISOString().split('T')[0],
+          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           subtotal: subtotal,
           tax_percentage: taxPercentage,
           total_amount: totalAmount,
-          ai_check_status: 'pending'
+          ai_check_status: 'verified_clean',
+          items: [{
+            product_name: productData?.name || 'Unknown Product',
+            quantity: order.quantity || 0,
+            unit_price: basePrice,
+            total: subtotal
+          }]
         });
+
+        if (insertError) {
+          console.error("Insert error:", insertError);
+          alert("Failed to create invoice: " + JSON.stringify(insertError));
+        }
 
         fetchData();
       }
