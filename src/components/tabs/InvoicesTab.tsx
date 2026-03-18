@@ -115,18 +115,18 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
     
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text('Subtotal:', 140, finalY + 10);
-    doc.text(`€${Number(invoice.subtotal || 0).toFixed(2)}`, 180, finalY + 10, { align: 'right' });
+    doc.text('Subtotal:', 130, finalY + 10);
+    doc.text(`€${Number(invoice.subtotal || 0).toFixed(2)}`, 190, finalY + 10, { align: 'right' });
     
-    doc.text(`VAT (${invoice.tax_percentage || 0}%):`, 140, finalY + 16);
+    doc.text(`VAT (${invoice.tax_percentage || 0}%):`, 130, finalY + 16);
     const taxAmount = (invoice.subtotal || 0) * ((invoice.tax_percentage || 0) / 100);
-    doc.text(`€${taxAmount.toFixed(2)}`, 180, finalY + 16, { align: 'right' });
+    doc.text(`€${taxAmount.toFixed(2)}`, 190, finalY + 16, { align: 'right' });
     
     doc.setFontSize(12);
     doc.setTextColor(40, 40, 40);
     doc.setFont('helvetica', 'bold');
-    doc.text('Total Amount:', 140, finalY + 24);
-    doc.text(`€${Number(invoice.total_amount || 0).toFixed(2)}`, 180, finalY + 24, { align: 'right' });
+    doc.text('Total Amount:', 130, finalY + 24);
+    doc.text(`€${Number(invoice.total_amount || 0).toFixed(2)}`, 190, finalY + 24, { align: 'right' });
 
     // Add Footer
     doc.setFont('helvetica', 'normal');
