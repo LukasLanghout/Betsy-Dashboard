@@ -609,6 +609,7 @@ export default function App() {
         <SupplierComparisonModal 
           product={drillDownProduct} 
           onClose={() => setDrillDownProduct(null)} 
+          onOrderCreated={fetchData}
         />
       )}
     </div>

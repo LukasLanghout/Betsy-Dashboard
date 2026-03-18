@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react';
-import { X, Package, Truck, ShieldCheck, DollarSign, Loader2 } from 'lucide-react';
+import { X, Package, Truck, ShieldCheck, DollarSign, Loader2, CheckCircle2, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface SupplierComparisonModalProps {
   product: any;
   onClose: () => void;
+  onOrderCreated?: () => void;
 }
 
-export function SupplierComparisonModal({ product, onClose }: SupplierComparisonModalProps) {
+export function SupplierComparisonModal({ product, onClose, onOrderCreated }: SupplierComparisonModalProps) {
   const [availableSuppliers, setAvailableSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creatingPO, setCreatingPO] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchSupplierPrices() {
       if (!product) return;
       
       try {
-        // Haal supplier prijzen op voor dit product en join met de 'suppliers' tabel voor de naam.
         const { data, error } = await supabase
           .from('supplier_prices')
           .select(`
@@ -25,7 +27,7 @@ export function SupplierComparisonModal({ product, onClose }: SupplierComparison
             supplier_id,
             suppliers ( name, reliability_score )
           `)
-          .eq('product_id', product.product_id)
+          .eq('product_id', product.product_id || product.id)
           .order('price', { ascending: true });
 
         if (error) throw error;
@@ -40,7 +42,48 @@ export function SupplierComparisonModal({ product, onClose }: SupplierComparison
               supplierId: item.supplier_id
             };
           });
-          setAvailableSuppliers(formatted);
+
+          // Calculate recommendations
+          const withRecommendations = formatted.map((s, idx, arr) => {
+            const reasons = [];
+            
+            const isCheapest = s.price === Math.min(...arr.map(a => a.price));
+            const isFastest = s.delivery_days === Math.min(...arr.map(a => a.delivery_days));
+            const isMostReliable = s.reliability_score === Math.max(...arr.map(a => a.reliability_score));
+
+            if (isCheapest) reasons.push("Best Price");
+            if (isFastest) reasons.push("Fastest Delivery");
+            if (isMostReliable && s.reliability_score > 90) reasons.push("Most Reliable");
+
+            // Overall score calculation (normalized 0-1)
+            const maxPrice = Math.max(...arr.map(a => a.price));
+            const minPrice = Math.min(...arr.map(a => a.price));
+            const maxDays = Math.max(...arr.map(a => a.delivery_days));
+            const minDays = Math.min(...arr.map(a => a.delivery_days));
+            
+            const priceScore = maxPrice === minPrice ? 1 : (maxPrice - s.price) / (maxPrice - minPrice);
+            const timeScore = maxDays === minDays ? 1 : (maxDays - s.delivery_days) / (maxDays - minDays);
+            const reliabilityScore = s.reliability_score / 100;
+
+            const overallScore = (priceScore * 0.5) + (timeScore * 0.2) + (reliabilityScore * 0.3);
+            
+            return { ...s, reasons, overallScore };
+          });
+
+          // Sort by overall score for the "Best Overall" badge
+          const sorted = [...withRecommendations].sort((a, b) => b.overallScore - a.overallScore);
+          if (sorted.length > 0) {
+            const bestId = sorted[0].supplierId;
+            const final = withRecommendations.map(s => {
+              if (s.supplierId === bestId && sorted.length > 1) {
+                return { ...s, isBestOverall: true };
+              }
+              return s;
+            });
+            setAvailableSuppliers(final);
+          } else {
+            setAvailableSuppliers(withRecommendations);
+          }
         }
       } catch (error) {
         console.error("Fout bij ophalen van supplier prijzen:", error);
@@ -51,6 +94,38 @@ export function SupplierComparisonModal({ product, onClose }: SupplierComparison
 
     fetchSupplierPrices();
   }, [product]);
+
+  const handleCreatePO = async (supplier: any) => {
+    setCreatingPO(supplier.supplierId);
+    try {
+      const quantity = product.reorder_quantity || 50;
+      const { error } = await supabase
+        .from('orders')
+        .insert({
+          product_id: product.product_id || product.id,
+          supplier_id: supplier.supplierId,
+          quantity: quantity,
+          status: 'pending',
+          total_price: supplier.price * quantity,
+          order_date: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      setSuccessMessage(`PO successfully created for ${supplier.supplierName}!`);
+      if (onOrderCreated) onOrderCreated();
+      
+      setTimeout(() => {
+        setSuccessMessage(null);
+        onClose();
+      }, 2000);
+    } catch (error) {
+      console.error("Error creating PO:", error);
+      alert("Failed to create Purchase Order. Please try again.");
+    } finally {
+      setCreatingPO(null);
+    }
+  };
 
   if (!product) return null;
 
@@ -71,6 +146,13 @@ export function SupplierComparisonModal({ product, onClose }: SupplierComparison
         </div>
         
         <div className="p-6 overflow-y-auto">
+          {successMessage && (
+            <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3 text-emerald-400 animate-in fade-in slide-in-from-top-4">
+              <CheckCircle2 className="w-5 h-5" />
+              <p className="text-sm font-medium">{successMessage}</p>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
@@ -102,9 +184,30 @@ export function SupplierComparisonModal({ product, onClose }: SupplierComparison
                 <tbody className="divide-y divide-white/5">
                   {availableSuppliers.map((supplier, idx) => (
                     <tr key={supplier.supplierId || idx} className="group hover:bg-white/5 transition-colors">
-                      <td className="py-4">
+                      <td className="py-4 pr-4">
                         <div className="font-medium text-white">{supplier.supplierName}</div>
-                        {idx === 0 && <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400">Best Price</span>}
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {supplier.reasons.map((reason: string) => (
+                            <span key={reason} className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                              reason === 'Best Price' ? 'bg-emerald-500/20 text-emerald-400' :
+                              reason === 'Fastest Delivery' ? 'bg-blue-500/20 text-blue-400' :
+                              'bg-amber-500/20 text-amber-400'
+                            }`}>
+                              {reason}
+                            </span>
+                          ))}
+                          {supplier.isBestOverall && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                              Best Overall Choice
+                            </span>
+                          )}
+                        </div>
+                        {supplier.isBestOverall && (
+                          <div className="mt-2 flex items-start gap-1.5 text-[10px] text-gray-400 bg-indigo-500/5 p-2 rounded-lg border border-indigo-500/10">
+                            <Info className="w-3 h-3 text-indigo-400 shrink-0 mt-0.5" />
+                            <p>Recommended based on optimal balance of price, speed, and reliability.</p>
+                          </div>
+                        )}
                       </td>
                       <td className="py-4 text-white font-mono">${Number(supplier.price).toFixed(2)}</td>
                       <td className="py-4 text-gray-300">{supplier.delivery_days} days</td>
@@ -120,8 +223,19 @@ export function SupplierComparisonModal({ product, onClose }: SupplierComparison
                         </div>
                       </td>
                       <td className="py-4 text-right">
-                        <button className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors">
-                          Create PO
+                        <button 
+                          onClick={() => handleCreatePO(supplier)}
+                          disabled={creatingPO !== null}
+                          className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all active:scale-95 flex items-center gap-2 ml-auto"
+                        >
+                          {creatingPO === supplier.supplierId ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                            'Create PO'
+                          )}
                         </button>
                       </td>
                     </tr>
