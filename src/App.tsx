@@ -6,6 +6,7 @@ import { SupplierScorecard } from './components/SupplierScorecard';
 import { OrderPipeline } from './components/OrderPipeline';
 import { LowStockAlerts } from './components/LowStockAlerts';
 import { SupplierComparisonModal } from './components/SupplierComparisonModal';
+import { ConfirmationModal } from './components/ConfirmationModal';
 import { AIInsights } from './components/AIInsights';
 import { supabase, hasSupabaseConfig } from './lib/supabase';
 import { GoogleGenAI } from "@google/genai";
@@ -39,6 +40,19 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedSupplier, setSelectedSupplier] = useState<string>('All');
   const [drillDownProduct, setDrillDownProduct] = useState<any | null>(null);
+  const [showConfirm, setShowConfirm] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'warning'
+  });
 
   const fetchData = async () => {
     if (!hasSupabaseConfig) {
@@ -135,7 +149,15 @@ export default function App() {
 
       // Generate Proposals based on inventory
       const newProposals = formattedInventory
-        .filter(item => item.stock_level < item.reorder_point)
+        .filter(item => {
+          const productId = item.product_id || item.id;
+          // Filter out items that already have a pending or approved order
+          const hasActiveOrder = (ordData || []).some((o: any) => 
+            (o.product_id === productId || o.product_id === String(productId)) && 
+            ['pending', 'approved', 'processing', 'shipped'].includes(o.status?.toLowerCase())
+          );
+          return item.stock_level < item.reorder_point && !hasActiveOrder;
+        })
         .map(item => {
           const productId = item.product_id || item.id;
           const predicted_stockout_days = Math.max(1, Math.floor((item.stock_level / (item.avg_weekly_sales || 10)) * 7));
@@ -259,74 +281,103 @@ export default function App() {
   }, [isLoggedIn]);
 
   const updateStock = async (productId: number, newStock: number) => {
-    try {
-      const { error } = await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', productId);
-      if (!error) fetchData();
-    } catch (error) {
-      console.error('Error updating stock:', error);
-    }
+    setShowConfirm({
+      isOpen: true,
+      title: 'Voorraad aanpassen?',
+      message: `Weet je zeker dat je de voorraad wilt aanpassen naar ${newStock}?`,
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', productId);
+          if (!error) fetchData();
+        } catch (error) {
+          console.error('Error updating stock:', error);
+        } finally {
+          setShowConfirm(prev => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
   };
 
   const updateReorderPoint = async (productId: number, newPoint: number) => {
-    try {
-      const { error } = await supabase.from('inventory').update({ reorder_point: newPoint }).eq('product_id', productId);
-      if (!error) fetchData();
-    } catch (error) {
-      console.error('Error updating reorder point:', error);
-    }
+    setShowConfirm({
+      isOpen: true,
+      title: 'Bestelpunt aanpassen?',
+      message: `Weet je zeker dat je het bestelpunt wilt aanpassen naar ${newPoint}?`,
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('inventory').update({ reorder_point: newPoint }).eq('product_id', productId);
+          if (!error) fetchData();
+        } catch (error) {
+          console.error('Error updating reorder point:', error);
+        } finally {
+          setShowConfirm(prev => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
   };
 
   const deliverOrder = async (order: any) => {
-    try {
-      const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', order.id);
-      if (!error) {
-        // Update stock level
-        const currentItem = inventory.find((item: any) => item.product_id === order.product_id);
-        if (currentItem) {
-          const newStock = (currentItem.stock_level || 0) + (order.quantity || 0);
-          await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', order.product_id);
+    setShowConfirm({
+      isOpen: true,
+      title: 'Bestelling geleverd?',
+      message: 'Weet je zeker dat deze bestelling is geleverd? De voorraad wordt direct bijgewerkt.',
+      type: 'info',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', order.id);
+          if (!error) {
+            // Update stock level
+            const currentItem = inventory.find((item: any) => item.product_id === order.product_id);
+            if (currentItem) {
+              const newStock = (currentItem.stock_level || 0) + (order.quantity || 0);
+              await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', order.product_id);
+            }
+
+            // Create Invoice
+            const vendorName = order.suppliers?.name || order.supplier_name || 'Unknown Supplier';
+            const invoiceNumber = `INV-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+            
+            const productData = Array.isArray(order.products) ? order.products[0] : order.products;
+            const basePrice = productData?.base_price || 50;
+            
+            const subtotal = (order.quantity || 0) * basePrice;
+            const taxPercentage = 21;
+            const totalAmount = subtotal * (1 + taxPercentage / 100);
+
+            const { error: insertError } = await supabase.from('invoices').insert({
+              id: `inv-${Date.now()}`,
+              invoice_number: invoiceNumber,
+              order_id: order.id,
+              vendor: vendorName,
+              invoice_date: new Date().toISOString().split('T')[0],
+              due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              subtotal: subtotal,
+              tax_percentage: taxPercentage,
+              total_amount: totalAmount,
+              ai_check_status: 'verified_clean',
+              items: [{
+                product_name: productData?.name || 'Unknown Product',
+                quantity: order.quantity || 0,
+                unit_price: basePrice,
+                total: subtotal
+              }]
+            });
+
+            if (insertError) {
+              console.error("Insert error:", insertError);
+            }
+
+            fetchData();
+          }
+        } catch (error) {
+          console.error('Error delivering order:', error);
+        } finally {
+          setShowConfirm(prev => ({ ...prev, isOpen: false }));
         }
-
-        // Create Invoice
-        const vendorName = order.suppliers?.name || order.supplier_name || 'Unknown Supplier';
-        const invoiceNumber = `INV-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-        
-        const productData = Array.isArray(order.products) ? order.products[0] : order.products;
-        const basePrice = productData?.base_price || 50;
-        
-        const subtotal = (order.quantity || 0) * basePrice;
-        const taxPercentage = 21;
-        const totalAmount = subtotal * (1 + taxPercentage / 100);
-
-        const { error: insertError } = await supabase.from('invoices').insert({
-          id: `inv-${Date.now()}`,
-          invoice_number: invoiceNumber,
-          order_id: order.id,
-          vendor: vendorName,
-          invoice_date: new Date().toISOString().split('T')[0],
-          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          subtotal: subtotal,
-          tax_percentage: taxPercentage,
-          total_amount: totalAmount,
-          ai_check_status: 'verified_clean',
-          items: [{
-            product_name: productData?.name || 'Unknown Product',
-            quantity: order.quantity || 0,
-            unit_price: basePrice,
-            total: subtotal
-          }]
-        });
-
-        if (insertError) {
-          console.error("Insert error:", insertError);
-          alert("Failed to create invoice: " + JSON.stringify(insertError));
-        }
-
-        fetchData();
       }
-    } catch (error) {
-      console.error('Error delivering order:', error);
-    }
+    });
   };
 
   const updateInvoice = async (updatedInvoice: any) => {
@@ -343,35 +394,54 @@ export default function App() {
 
   const approveOrder = async (proposal: any, selectedSupplier?: any) => {
     const supplier = selectedSupplier || proposal.suggested_supplier;
-    try {
-      const { error } = await supabase.from('orders').insert({
-        product_id: proposal.product_id,
-        supplier_id: supplier.id || supplier.supplier_id,
-        quantity: proposal.recommended_order,
-        status: 'pending',
-        order_date: new Date().toISOString()
-      });
-      if (!error) {
-        setProposals(prev => prev.filter(p => p.product_id !== proposal.product_id));
-        fetchData();
-        setActiveTab('orders');
-        setAdjustingProposal(null);
+    setShowConfirm({
+      isOpen: true,
+      title: 'Bestelling goedkeuren?',
+      message: `Weet je zeker dat je ${proposal.recommended_order}x ${proposal.product_name} wilt bestellen bij ${supplier.name}?`,
+      type: 'info',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('orders').insert({
+            product_id: proposal.product_id,
+            supplier_id: supplier.id || supplier.supplier_id,
+            quantity: proposal.recommended_order,
+            status: 'pending',
+            order_date: new Date().toISOString()
+          });
+          if (!error) {
+            setProposals(prev => prev.filter(p => p.product_id !== proposal.product_id));
+            fetchData();
+            setActiveTab('orders');
+            setAdjustingProposal(null);
+          }
+        } catch (error) {
+          console.error('Error approving order:', error);
+        } finally {
+          setShowConfirm(prev => ({ ...prev, isOpen: false }));
+        }
       }
-    } catch (error) {
-      console.error('Error approving order:', error);
-    }
+    });
   };
 
   const resetData = async () => {
-    if (!confirm("Are you sure you want to clear all order and invoice history? This cannot be undone.")) return;
-    try {
-      // In a real app, you'd call a Supabase function or delete rows.
-      // For now, we'll just refetch.
-      fetchData();
-      setActiveTab('dashboard');
-    } catch (error) {
-      console.error('Error resetting data:', error);
-    }
+    setShowConfirm({
+      isOpen: true,
+      title: 'Gegevens wissen?',
+      message: 'Weet je zeker dat je alle bestel- en factuurgeschiedenis wilt wissen? Dit kan niet ongedaan worden gemaakt.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          // In a real app, you'd call a Supabase function or delete rows.
+          // For now, we'll just refetch.
+          fetchData();
+          setActiveTab('dashboard');
+        } catch (error) {
+          console.error('Error resetting data:', error);
+        } finally {
+          setShowConfirm(prev => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
   };
 
   // Afgeleide Data & Filters voor Dashboard
@@ -612,6 +682,16 @@ export default function App() {
           onOrderCreated={fetchData}
         />
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirm.isOpen}
+        title={showConfirm.title}
+        message={showConfirm.message}
+        type={showConfirm.type}
+        onConfirm={showConfirm.onConfirm}
+        onCancel={() => setShowConfirm(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

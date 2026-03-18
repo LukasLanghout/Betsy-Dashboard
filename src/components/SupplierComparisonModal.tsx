@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, Package, Truck, ShieldCheck, DollarSign, Loader2, CheckCircle2, Info } from 'lucide-react';
+import { X, Package, Truck, ShieldCheck, DollarSign, Loader2, CheckCircle2, Info, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface SupplierComparisonModalProps {
   product: any;
@@ -13,6 +14,8 @@ export function SupplierComparisonModal({ product, onClose, onOrderCreated }: Su
   const [loading, setLoading] = useState(true);
   const [creatingPO, setCreatingPO] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [selectedSupplierForPO, setSelectedSupplierForPO] = useState<any>(null);
 
   useEffect(() => {
     async function fetchSupplierPrices() {
@@ -96,6 +99,14 @@ export function SupplierComparisonModal({ product, onClose, onOrderCreated }: Su
   }, [product]);
 
   const handleCreatePO = async (supplier: any) => {
+    setSelectedSupplierForPO(supplier);
+    setShowConfirm(true);
+  };
+
+  const confirmCreatePO = async () => {
+    if (!selectedSupplierForPO) return;
+    const supplier = selectedSupplierForPO;
+    setShowConfirm(false);
     setCreatingPO(supplier.supplierId);
     try {
       const quantity = product.reorder_quantity || 50;
@@ -124,6 +135,7 @@ export function SupplierComparisonModal({ product, onClose, onOrderCreated }: Su
       alert("Failed to create Purchase Order. Please try again.");
     } finally {
       setCreatingPO(null);
+      setSelectedSupplierForPO(null);
     }
   };
 
@@ -246,6 +258,15 @@ export function SupplierComparisonModal({ product, onClose, onOrderCreated }: Su
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showConfirm}
+        title="Bestelling plaatsen?"
+        message={`Weet je zeker dat je een bestelling wilt plaatsen bij ${selectedSupplierForPO?.supplierName} voor ${product.name}?`}
+        type="info"
+        onConfirm={confirmCreatePO}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   );
 }
