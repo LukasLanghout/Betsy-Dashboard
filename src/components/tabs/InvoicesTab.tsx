@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { ArrowRight, AlertTriangle, CheckCircle2, BrainCircuit, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, updateInvoice }: any) {
   
@@ -100,7 +100,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
       });
     }
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: 95,
       head: [tableColumn],
       body: tableRows,
