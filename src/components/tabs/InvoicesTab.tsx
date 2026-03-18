@@ -1,8 +1,143 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, AlertTriangle, CheckCircle2, BrainCircuit } from 'lucide-react';
+import { ArrowRight, AlertTriangle, CheckCircle2, BrainCircuit, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, updateInvoice }: any) {
+  
+  const loadImage = (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          reject(new Error('Could not get canvas context'));
+        }
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  };
+
+  const downloadPDF = async (invoice: any) => {
+    const doc = new jsPDF();
+    
+    const vendorName = invoice.vendor || 'Unknown Vendor';
+    
+    // Add Header
+    doc.setFontSize(24);
+    doc.setTextColor(40, 40, 40);
+    doc.text('INVOICE', 14, 22);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Invoice Number: ${invoice.invoice_number}`, 14, 30);
+    doc.text(`Date: ${invoice.invoice_date || 'N/A'}`, 14, 35);
+    doc.text(`Due Date: ${invoice.due_date || 'N/A'}`, 14, 40);
+    
+    // Add Vendor Info
+    doc.setFontSize(14);
+    doc.setTextColor(40, 40, 40);
+    doc.text('From:', 120, 22);
+    doc.setFontSize(12);
+    doc.text(vendorName, 120, 30);
+    
+    // Try to load and add logo
+    const normalizedVendor = vendorName.toLowerCase().replace(/\s+/g, '');
+    let logoUrl = null;
+    if (normalizedVendor.includes('fastfootwear')) logoUrl = '/FastFootwear.png';
+    else if (normalizedVendor.includes('globalsports')) logoUrl = '/GlobalSports.png';
+    else if (normalizedVendor.includes('elitegear')) logoUrl = '/EliteGear.png';
+
+    try {
+      if (logoUrl) {
+        const base64Img = await loadImage(logoUrl);
+        doc.addImage(base64Img, 'PNG', 120, 35, 60, 20);
+      } else {
+        throw new Error('No logo found');
+      }
+    } catch (e) {
+      // Fallback to text box if image fails to load
+      doc.setDrawColor(200, 200, 200);
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(120, 35, 60, 20, 2, 2, 'FD');
+      doc.setFontSize(10);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`${vendorName} Logo`, 130, 46);
+    }
+    
+    // Add Bill To
+    doc.setFontSize(14);
+    doc.setTextColor(40, 40, 40);
+    doc.text('Bill To:', 14, 65);
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Your Company Name', 14, 72);
+    doc.text('123 Business Avenue', 14, 77);
+    doc.text('Business City, 10001', 14, 82);
+
+    // Add Items Table
+    const tableColumn = ["Product Name", "Quantity", "Unit Price", "Total"];
+    const tableRows: any[] = [];
+
+    if (invoice.items && Array.isArray(invoice.items)) {
+      invoice.items.forEach((item: any) => {
+        const itemData = [
+          item.product_name || 'N/A',
+          item.quantity || 0,
+          `€${Number(item.unit_price || 0).toFixed(2)}`,
+          `€${Number(item.total || 0).toFixed(2)}`
+        ];
+        tableRows.push(itemData);
+      });
+    }
+
+    (doc as any).autoTable({
+      startY: 95,
+      head: [tableColumn],
+      body: tableRows,
+      theme: 'striped',
+      headStyles: { fillColor: [16, 185, 129] }, // Emerald 500
+      styles: { fontSize: 10, cellPadding: 5 },
+      alternateRowStyles: { fillColor: [245, 245, 245] }
+    });
+
+    // Add Totals
+    const finalY = (doc as any).lastAutoTable.finalY || 95;
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Subtotal:', 140, finalY + 10);
+    doc.text(`€${Number(invoice.subtotal || 0).toFixed(2)}`, 180, finalY + 10, { align: 'right' });
+    
+    doc.text(`VAT (${invoice.tax_percentage || 0}%):`, 140, finalY + 16);
+    const taxAmount = (invoice.subtotal || 0) * ((invoice.tax_percentage || 0) / 100);
+    doc.text(`€${taxAmount.toFixed(2)}`, 180, finalY + 16, { align: 'right' });
+    
+    doc.setFontSize(12);
+    doc.setTextColor(40, 40, 40);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total Amount:', 140, finalY + 24);
+    doc.text(`€${Number(invoice.total_amount || 0).toFixed(2)}`, 180, finalY + 24, { align: 'right' });
+
+    // Add Footer
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Thank you for your business!', 105, 280, { align: 'center' });
+
+    // Save PDF
+    doc.save(`Invoice_${invoice.invoice_number || 'Draft'}.pdf`);
+  };
+
   return (
     <div className="space-y-6">
       {selectedInvoice ? (
@@ -23,6 +158,13 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
               <h3 className="text-xl font-bold text-white">Invoice Detail: {selectedInvoice?.invoice_number}</h3>
             </div>
             <div className="flex gap-3">
+              <button 
+                onClick={() => downloadPDF(selectedInvoice)}
+                className="px-4 py-2 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition-all flex items-center gap-2 border border-white/10"
+              >
+                <Download size={16} />
+                Download PDF
+              </button>
               <button 
                 onClick={() => updateInvoice(selectedInvoice)}
                 className="px-6 py-2 bg-emerald-500 text-black font-bold rounded-xl hover:bg-emerald-400 transition-all"
@@ -266,12 +408,21 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button 
-                          onClick={() => setSelectedInvoice(inv)}
-                          className="px-4 py-1.5 bg-white/5 hover:bg-white/10 text-white text-xs font-medium rounded-lg transition-all border border-white/5"
-                        >
-                          View & Edit
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => downloadPDF(inv)}
+                            className="p-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all border border-white/5"
+                            title="Download PDF"
+                          >
+                            <Download size={14} />
+                          </button>
+                          <button 
+                            onClick={() => setSelectedInvoice(inv)}
+                            className="px-4 py-1.5 bg-white/5 hover:bg-white/10 text-white text-xs font-medium rounded-lg transition-all border border-white/5"
+                          >
+                            View & Edit
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
