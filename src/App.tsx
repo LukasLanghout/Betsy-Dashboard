@@ -276,6 +276,7 @@ export default function App() {
         const totalAmount = subtotal * (1 + taxPercentage / 100);
 
         const { error: insertError } = await supabase.from('invoices').insert({
+          id: `inv-${Date.now()}`,
           invoice_number: invoiceNumber,
           order_id: order.id,
           vendor: vendorName,
