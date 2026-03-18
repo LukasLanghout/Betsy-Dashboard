@@ -1,4 +1,4 @@
-import { User, Mail, ShoppingBag, CheckCircle2, XCircle } from 'lucide-react';
+import { User, Mail, ShoppingBag, CheckCircle2, XCircle, History } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -60,7 +60,7 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-xs">
-                          {customer.name.charAt(0)}
+                          {customer.name?.charAt(0) || '?'}
                         </div>
                         <span className="text-white font-medium">{customer.name}</span>
                       </div>
