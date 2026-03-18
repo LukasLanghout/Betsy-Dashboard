@@ -263,6 +263,28 @@ export default function App() {
           const newStock = (currentItem.stock_level || 0) + (order.quantity || 0);
           await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', order.product_id);
         }
+
+        // Create Invoice
+        const vendorName = order.suppliers?.name || order.supplier_name || 'Unknown Supplier';
+        const invoiceNumber = `INV-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+        
+        const productData = Array.isArray(order.products) ? order.products[0] : order.products;
+        const basePrice = productData?.base_price || 50;
+        
+        const subtotal = (order.quantity || 0) * basePrice;
+        const taxPercentage = 21;
+        const totalAmount = subtotal * (1 + taxPercentage / 100);
+
+        await supabase.from('invoices').insert({
+          invoice_number: invoiceNumber,
+          vendor: vendorName,
+          invoice_date: new Date().toISOString().split('T')[0],
+          subtotal: subtotal,
+          tax_percentage: taxPercentage,
+          total_amount: totalAmount,
+          ai_check_status: 'pending'
+        });
+
         fetchData();
       }
     } catch (error) {
