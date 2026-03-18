@@ -191,8 +191,21 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                 <div className="space-y-4">
                   <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Supplier Information</label>
                   <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                    <p className="text-white font-bold">{selectedInvoice?.vendor}</p>
-                    <p className="text-gray-500 text-xs mt-1">B2B Verified Partner</p>
+                    <div className="flex items-center gap-3">
+                      {selectedInvoice?.vendor?.toLowerCase()?.includes('fastfootwear') && (
+                        <img src="/FastFootwear.png" alt="FastFootwear" className="h-8 object-contain bg-white rounded p-1" />
+                      )}
+                      {selectedInvoice?.vendor?.toLowerCase()?.includes('globalsports') && (
+                        <img src="/GlobalSports.png" alt="GlobalSports" className="h-8 object-contain bg-white rounded p-1" />
+                      )}
+                      {selectedInvoice?.vendor?.toLowerCase()?.includes('elitegear') && (
+                        <img src="/EliteGear.png" alt="EliteGear" className="h-8 object-contain bg-white rounded p-1" />
+                      )}
+                      <div>
+                        <p className="text-white font-bold">{selectedInvoice?.vendor}</p>
+                        <p className="text-gray-500 text-xs mt-1">B2B Verified Partner</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -278,7 +291,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                               />
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-right text-white font-mono">€{item.total?.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-right text-white font-mono">€{Number(item.total || 0).toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -317,7 +330,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                 <div className="space-y-4 pt-6 border-t border-white/5">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Subtotal</span>
-                    <span className="text-white font-mono">€{selectedInvoice?.subtotal?.toFixed(2)}</span>
+                    <span className="text-white font-mono">€{Number(selectedInvoice?.subtotal || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-500">VAT (%)</span>
@@ -338,7 +351,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                   </div>
                   <div className="flex justify-between pt-4 border-t border-white/10">
                     <span className="text-white font-bold">Total Amount</span>
-                    <span className="text-xl font-bold text-emerald-500 font-mono">€{selectedInvoice?.total_amount?.toFixed(2)}</span>
+                    <span className="text-xl font-bold text-emerald-500 font-mono">€{Number(selectedInvoice?.total_amount || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -391,9 +404,22 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                   {invoices.map((inv: any, idx: number) => (
                     <tr key={idx} className={`hover:bg-white/5 transition-colors ${inv.ai_check_status === 'error' ? 'bg-red-500/5' : ''}`}>
                       <td className="px-6 py-4 text-white font-mono">{inv.invoice_number}</td>
-                      <td className="px-6 py-4">{inv.vendor}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {inv.vendor?.toLowerCase()?.includes('fastfootwear') && (
+                            <img src="/FastFootwear.png" alt="FastFootwear" className="h-6 object-contain bg-white rounded px-1" />
+                          )}
+                          {inv.vendor?.toLowerCase()?.includes('globalsports') && (
+                            <img src="/GlobalSports.png" alt="GlobalSports" className="h-6 object-contain bg-white rounded px-1" />
+                          )}
+                          {inv.vendor?.toLowerCase()?.includes('elitegear') && (
+                            <img src="/EliteGear.png" alt="EliteGear" className="h-6 object-contain bg-white rounded px-1" />
+                          )}
+                          <span>{inv.vendor}</span>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-gray-500">{inv.invoice_date}</td>
-                      <td className="px-6 py-4 text-right text-white font-mono">€{inv.total_amount?.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-right text-white font-mono">€{Number(inv.total_amount || 0).toFixed(2)}</td>
                       <td className="px-6 py-4">
                         {inv.ai_check_status === 'error' ? (
                           <div className="flex items-center gap-2 text-red-400">

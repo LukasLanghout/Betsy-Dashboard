@@ -24,7 +24,20 @@ export function OrdersTab({ orders, deliverOrder }: any) {
               <tr key={idx} className="hover:bg-white/5 transition-colors">
                 <td className="px-6 py-4 text-gray-400 font-mono text-xs">#PO-{(order.id || idx).toString().padStart(4, '0')}</td>
                 <td className="px-6 py-4 text-white font-medium">{order.products?.name || order.product_name || `Product ${order.product_id}`}</td>
-                <td className="px-6 py-4">{order.suppliers?.name || order.supplier_name || `Supplier ${order.supplier_id}`}</td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    {(order.suppliers?.name || order.supplier_name || '').toLowerCase()?.includes('fastfootwear') && (
+                      <img src="/FastFootwear.png" alt="FastFootwear" className="h-6 object-contain bg-white rounded px-1" />
+                    )}
+                    {(order.suppliers?.name || order.supplier_name || '').toLowerCase()?.includes('globalsports') && (
+                      <img src="/GlobalSports.png" alt="GlobalSports" className="h-6 object-contain bg-white rounded px-1" />
+                    )}
+                    {(order.suppliers?.name || order.supplier_name || '').toLowerCase()?.includes('elitegear') && (
+                      <img src="/EliteGear.png" alt="EliteGear" className="h-6 object-contain bg-white rounded px-1" />
+                    )}
+                    <span>{order.suppliers?.name || order.supplier_name || `Supplier ${order.supplier_id}`}</span>
+                  </div>
+                </td>
                 <td className="px-6 py-4">{order.quantity || 0} units</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md border ${

@@ -9,7 +9,18 @@ export function SuppliersTab({ suppliers }: any) {
         suppliers.map((s: any, i: number) => (
           <div key={i} className="bg-[#141414] border border-white/5 rounded-2xl p-6">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="font-bold text-white">{s.name}</h3>
+              <div className="flex items-center gap-3">
+                {s.name?.toLowerCase()?.includes('fastfootwear') && (
+                  <img src="/FastFootwear.png" alt="FastFootwear" className="h-8 object-contain bg-white rounded p-1" />
+                )}
+                {s.name?.toLowerCase()?.includes('globalsports') && (
+                  <img src="/GlobalSports.png" alt="GlobalSports" className="h-8 object-contain bg-white rounded p-1" />
+                )}
+                {s.name?.toLowerCase()?.includes('elitegear') && (
+                  <img src="/EliteGear.png" alt="EliteGear" className="h-8 object-contain bg-white rounded p-1" />
+                )}
+                <h3 className="font-bold text-white">{s.name}</h3>
+              </div>
               <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">
                 {((s.reliability_score || 0.9) * 100).toFixed(0)}% Reliable
               </span>

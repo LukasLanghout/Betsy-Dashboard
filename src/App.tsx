@@ -54,8 +54,8 @@ export default function App() {
       ] = await Promise.all([
         supabase.from('inventory').select('*, products(*)'),
         supabase.from('suppliers').select('*'),
-        supabase.from('orders').select('*, products(*), suppliers(*)'),
-        supabase.from('invoices').select('*'),
+        supabase.from('orders').select('*, products(*), suppliers(*)').order('id', { ascending: false }),
+        supabase.from('invoices').select('*').order('id', { ascending: false }),
         supabase.from('supplier_prices').select('*')
       ]);
 
@@ -84,7 +84,21 @@ export default function App() {
       });
       setSuppliers(formattedSuppliers);
       
-      setInvoices(invcData || []);
+      const formattedInvoices = (invcData || []).map((inv: any) => {
+        let parsedItems = inv.items;
+        if (typeof parsedItems === 'string') {
+          try {
+            parsedItems = JSON.parse(parsedItems);
+          } catch (e) {
+            parsedItems = [];
+          }
+        }
+        return {
+          ...inv,
+          items: parsedItems
+        };
+      });
+      setInvoices(formattedInvoices);
 
       if (ordData) {
         setRawOrders(ordData);

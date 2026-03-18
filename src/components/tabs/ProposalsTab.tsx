@@ -66,7 +66,18 @@ export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAd
                   <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Suggested Supplier</h4>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-white font-medium">{prop.suggested_supplier.name}</span>
+                      <div className="flex items-center gap-2">
+                        {prop.suggested_supplier.name?.toLowerCase()?.includes('fastfootwear') && (
+                          <img src="/FastFootwear.png" alt="FastFootwear" className="h-5 object-contain bg-white rounded px-1" />
+                        )}
+                        {prop.suggested_supplier.name?.toLowerCase()?.includes('globalsports') && (
+                          <img src="/GlobalSports.png" alt="GlobalSports" className="h-5 object-contain bg-white rounded px-1" />
+                        )}
+                        {prop.suggested_supplier.name?.toLowerCase()?.includes('elitegear') && (
+                          <img src="/EliteGear.png" alt="EliteGear" className="h-5 object-contain bg-white rounded px-1" />
+                        )}
+                        <span className="text-sm text-white font-medium">{prop.suggested_supplier.name}</span>
+                      </div>
                       <span className="text-xs text-emerald-500 font-bold">Best Match</span>
                     </div>
                     <div className="space-y-2">
@@ -120,7 +131,18 @@ export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAd
                       {/* AI Pick */}
                       <div className="bg-emerald-500/5 border-2 border-emerald-500/30 rounded-xl p-6 relative">
                         <div className="absolute top-4 right-4 text-[8px] font-bold bg-emerald-500 text-black px-2 py-0.5 rounded uppercase">AI Choice</div>
-                        <h5 className="font-bold text-white mb-4">{prop.suggested_supplier.name}</h5>
+                        <div className="flex items-center gap-2 mb-4">
+                          {prop.suggested_supplier.name?.toLowerCase()?.includes('fastfootwear') && (
+                            <img src="/FastFootwear.png" alt="FastFootwear" className="h-6 object-contain bg-white rounded px-1" />
+                          )}
+                          {prop.suggested_supplier.name?.toLowerCase()?.includes('globalsports') && (
+                            <img src="/GlobalSports.png" alt="GlobalSports" className="h-6 object-contain bg-white rounded px-1" />
+                          )}
+                          {prop.suggested_supplier.name?.toLowerCase()?.includes('elitegear') && (
+                            <img src="/EliteGear.png" alt="EliteGear" className="h-6 object-contain bg-white rounded px-1" />
+                          )}
+                          <h5 className="font-bold text-white">{prop.suggested_supplier.name}</h5>
+                        </div>
                         <div className="space-y-2 mb-6">
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-500">Price</span>
@@ -146,7 +168,18 @@ export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAd
                       {/* Alternatives */}
                       {prop.alternatives?.map((alt: any, aIdx: number) => (
                         <div key={aIdx} className="bg-white/5 border border-white/10 rounded-xl p-6">
-                          <h5 className="font-bold text-white mb-4">{alt.name}</h5>
+                          <div className="flex items-center gap-2 mb-4">
+                            {alt.name?.toLowerCase()?.includes('fastfootwear') && (
+                              <img src="/FastFootwear.png" alt="FastFootwear" className="h-6 object-contain bg-white rounded px-1" />
+                            )}
+                            {alt.name?.toLowerCase()?.includes('globalsports') && (
+                              <img src="/GlobalSports.png" alt="GlobalSports" className="h-6 object-contain bg-white rounded px-1" />
+                            )}
+                            {alt.name?.toLowerCase()?.includes('elitegear') && (
+                              <img src="/EliteGear.png" alt="EliteGear" className="h-6 object-contain bg-white rounded px-1" />
+                            )}
+                            <h5 className="font-bold text-white">{alt.name}</h5>
+                          </div>
                           <div className="space-y-2 mb-6">
                             <div className="flex justify-between text-xs">
                               <span className="text-gray-500">Price</span>
