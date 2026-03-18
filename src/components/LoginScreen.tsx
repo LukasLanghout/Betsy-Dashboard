@@ -11,7 +11,18 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
         className="w-full max-w-md bg-[#141414] border border-white/10 rounded-2xl p-8 shadow-2xl"
       >
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center border border-emerald-500/30">
+          <img src="/betsy-logo.png" alt="Betsy AI Logo" className="h-24 object-contain" onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            if (target.src.endsWith('.png')) {
+              target.src = '/betsy-logo.jpg';
+            } else if (target.src.endsWith('.jpg')) {
+              target.src = '/betsy-logo.jpeg';
+            } else {
+              target.style.display = 'none';
+              target.nextElementSibling?.classList.remove('hidden');
+            }
+          }} />
+          <div className="hidden w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center border border-emerald-500/30">
             <BrainCircuit className="w-8 h-8 text-emerald-400" />
           </div>
         </div>

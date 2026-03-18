@@ -390,6 +390,16 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-indigo-400">
         <div className="flex flex-col items-center gap-4">
+          <img src="/betsy-logo.png" alt="Betsy AI Logo" className="h-24 object-contain mb-4" onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            if (target.src.endsWith('.png')) {
+              target.src = '/betsy-logo.jpg';
+            } else if (target.src.endsWith('.jpg')) {
+              target.src = '/betsy-logo.jpeg';
+            } else {
+              target.style.display = 'none';
+            }
+          }} />
           <Loader2 className="w-8 h-8 animate-spin" />
           <p className="text-sm font-medium tracking-wider uppercase text-gray-400">Loading Betsy AI Data...</p>
         </div>

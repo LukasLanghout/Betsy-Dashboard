@@ -21,10 +21,24 @@ export function Sidebar({ activeTab, setActiveTab, setIsLoggedIn, proposalsCount
   return (
     <aside className="w-64 border-r border-white/5 bg-[#0d0d0d] flex flex-col h-screen sticky top-0">
       <div className="p-6 flex items-center gap-3">
-        <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-          <BrainCircuit className="w-5 h-5 text-black" />
+        <img src="/betsy-logo.jpg" alt="Betsy AI Logo" className="h-10 object-contain rounded-lg" onError={(e) => {
+          // Fallback if the image is named .png instead
+          const target = e.target as HTMLImageElement;
+          if (target.src.endsWith('.jpg')) {
+            target.src = '/betsy-logo.png';
+          } else if (target.src.endsWith('.png')) {
+            target.src = '/betsy-logo.jpeg';
+          } else {
+            target.style.display = 'none';
+            target.nextElementSibling?.classList.remove('hidden');
+          }
+        }} />
+        <div className="hidden flex items-center gap-3">
+          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+            <BrainCircuit className="w-5 h-5 text-black" />
+          </div>
+          <span className="font-bold text-white tracking-tight">Betsy AI</span>
         </div>
-        <span className="font-bold text-white tracking-tight">Betsy AI</span>
       </div>
 
       <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
