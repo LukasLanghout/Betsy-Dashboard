@@ -6,6 +6,7 @@ import {
   BrainCircuit,
   History,
   FileText,
+  User,
   LogOut
 } from 'lucide-react';
 
@@ -67,6 +68,12 @@ export function Sidebar({ activeTab, setActiveTab, setIsLoggedIn, proposalsCount
           active={activeTab === 'invoices'} 
           onClick={() => setActiveTab('invoices')} 
           badge={invoicesIssueCount}
+        />
+        <NavItem 
+          icon={<User size={20} />} 
+          label="Customers" 
+          active={activeTab === 'customers'} 
+          onClick={() => setActiveTab('customers')} 
         />
         <div className="pt-4 pb-2">
           <p className="px-4 text-[10px] font-bold text-gray-600 uppercase tracking-widest">Inventory</p>

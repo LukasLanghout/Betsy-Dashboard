@@ -39,3 +39,10 @@ export const invoiceData = [
   { id: 'inv7', amount: 5600, ai_check_status: 'verified_clean' },
   { id: 'inv8', amount: 900, ai_check_status: 'verified_clean' },
 ];
+
+export const customerData = [
+  { id: 'c1', name: 'John Doe', email: 'john@example.com', total_orders: 12, status: 'Active' },
+  { id: 'c2', name: 'Jane Smith', email: 'jane@example.com', total_orders: 8, status: 'Active' },
+  { id: 'c3', name: 'Bob Johnson', email: 'bob@example.com', total_orders: 3, status: 'Inactive' },
+  { id: 'c4', name: 'Alice Williams', email: 'alice@example.com', total_orders: 25, status: 'Active' },
+];

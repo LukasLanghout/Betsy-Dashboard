@@ -378,8 +378,19 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
       ) : (
         <div className="space-y-6">
           <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 flex items-start gap-4">
-            <div className="p-3 bg-emerald-500/10 rounded-xl">
-              <BrainCircuit className="text-emerald-500" size={24} />
+            <div className="p-2 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+              <img src="/betsy-logo.png" alt="Betsy AI" className="w-8 h-8 object-contain" onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (target.src.endsWith('.png')) {
+                  target.src = '/betsy-logo.jpg';
+                } else if (target.src.endsWith('.jpg')) {
+                  target.src = '/betsy-logo.jpeg';
+                } else {
+                  target.style.display = 'none';
+                  target.nextElementSibling?.classList.remove('hidden');
+                }
+              }} />
+              <BrainCircuit className="hidden text-emerald-500" size={24} />
             </div>
             <div>
               <h3 className="text-white font-bold mb-1">AI Invoice Auditor</h3>

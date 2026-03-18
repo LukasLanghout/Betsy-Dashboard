@@ -97,7 +97,18 @@ Provide your insights in a clear, bulleted list. Do not include any introductory
     <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-indigo-500/20 rounded-2xl p-6 h-full flex flex-col">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-          <BrainCircuit className="w-4 h-4 text-indigo-400" />
+          <img src="/betsy-logo.png" alt="Betsy AI" className="w-5 h-5 object-contain" onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            if (target.src.endsWith('.png')) {
+              target.src = '/betsy-logo.jpg';
+            } else if (target.src.endsWith('.jpg')) {
+              target.src = '/betsy-logo.jpeg';
+            } else {
+              target.style.display = 'none';
+              target.nextElementSibling?.classList.remove('hidden');
+            }
+          }} />
+          <BrainCircuit className="hidden w-4 h-4 text-indigo-400" />
         </div>
         <h3 className="text-white font-semibold flex items-center gap-2">
           Betsy AI Insights
