@@ -411,7 +411,7 @@ export default function App() {
           if (!error) {
             setProposals(prev => prev.filter(p => p.product_id !== proposal.product_id));
             fetchData();
-            setActiveTab('orders');
+            setActiveTab('proposals');
             setAdjustingProposal(null);
           }
         } catch (error) {
@@ -679,7 +679,10 @@ export default function App() {
         <SupplierComparisonModal 
           product={drillDownProduct} 
           onClose={() => setDrillDownProduct(null)} 
-          onOrderCreated={fetchData}
+          onOrderCreated={() => {
+            fetchData();
+            setActiveTab('proposals');
+          }}
         />
       )}
 
