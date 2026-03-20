@@ -136,20 +136,18 @@ export default function App() {
       if (ordData) {
         setRawOrders(ordData);
         
-        // Group into McKinsey-style stages: Pending, In Progress, Delivered
+        // Group into McKinsey-style stages: Pending, Delivered
         const pipeline = ordData.reduce((acc: any, order: any) => {
           const status = (order.status || 'pending').toLowerCase();
-          if (status === 'pending') {
-            acc['Pending'] = (acc['Pending'] || 0) + 1;
-          } else if (['approved', 'processing', 'shipped'].includes(status)) {
-            acc['In Progress'] = (acc['In Progress'] || 0) + 1;
-          } else if (status === 'delivered') {
+          if (status === 'delivered') {
             acc['Delivered'] = (acc['Delivered'] || 0) + 1;
+          } else {
+            acc['Pending'] = (acc['Pending'] || 0) + 1;
           }
           return acc;
         }, {});
         
-        const stageOrder = ['Pending', 'In Progress', 'Delivered'];
+        const stageOrder = ['Pending', 'Delivered'];
         const formattedPipeline = stageOrder.map(stage => ({
           stage,
           count: pipeline[stage] || 0

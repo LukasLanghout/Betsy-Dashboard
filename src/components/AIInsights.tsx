@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrainCircuit, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { generateGroqCompletion, hasGroqConfig } from '../lib/groq';
+import ReactMarkdown from 'react-markdown';
 
 interface AIInsightsProps {
   inventory: any[];
@@ -31,7 +32,6 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
         const lowStockItems = inventory.filter(i => (i.stock_level || 0) < (i.reorder_point || 0));
         const topSuppliers = suppliers.sort((a, b) => (b.reliability_score || 0) - (a.reliability_score || 0)).slice(0, 3);
         const pendingOrders = orders.find(o => o.stage === 'Pending')?.count || 0;
-        const inProgressOrders = orders.find(o => o.stage === 'In Progress')?.count || 0;
 
         let response;
         let retries = 3;
@@ -42,19 +42,19 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
             response = await generateGroqCompletion([
               {
                 role: "system",
-                content: "You are an expert procurement and supply chain AI assistant named Betsy. You provide data-driven, high-impact insights for executives. Focus on numbers, risks, and savings."
+                content: "You are Betsy, an expert supply chain AI. You provide data-driven, high-impact executive insights. Use bold text for key numbers and metrics. Be direct and actionable."
               },
               {
                 role: "user",
-                content: `Analyze this supply chain snapshot and provide 3 ultra-concise, data-driven insights. 
-                Focus on: AI error rates, stockout risks, and supplier cost/reliability trade-offs.
+                content: `Analyze this supply chain snapshot and provide 3 high-impact, data-driven insights. 
+                Focus on: stockout risks, financial impact, and supplier performance.
                 
                 Data:
                 - Low Stock: ${lowStockItems.length} items (${lowStockItems.map(i => i.name).join(', ')})
-                - Pipeline: ${pendingOrders} Pending, ${inProgressOrders} In Progress
-                - Top Suppliers: ${topSuppliers.map(s => `${s.name} (${(s.reliability_score * 100).toFixed(0)}% rel)`).join(', ')}
+                - Pending Orders: ${pendingOrders}
+                - Top Suppliers: ${topSuppliers.map(s => `${s.name} (${(s.reliability_score * 100).toFixed(0)}% reliability)`).join(', ')}
                 
-                Format: Use bold numbers and clear icons (🤖, ⚠️, 💡). Max 15 words per insight.`
+                Format: Use clear icons (🤖, ⚠️, 💡). Use **bold** for all numbers and key terms. Max 25 words per insight.`
               }
             ]);
             break; // Success, exit retry loop
@@ -135,8 +135,8 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
             </button>
           </div>
         ) : insights ? (
-          <div className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
-            {insights}
+          <div className="text-gray-300 text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
+            <ReactMarkdown>{insights}</ReactMarkdown>
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500 text-sm">

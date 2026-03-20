@@ -6,7 +6,7 @@ interface OrderPipelineProps {
 
 export function OrderPipeline({ data }: OrderPipelineProps) {
   // Ensure we have the right stages even if count is 0
-  const stages = ['Pending', 'In Progress', 'Delivered'];
+  const stages = ['Pending', 'Delivered'];
   const chartData = stages.map(stage => {
     const found = data.find(d => d.stage.toLowerCase() === stage.toLowerCase());
     return {
@@ -15,7 +15,7 @@ export function OrderPipeline({ data }: OrderPipelineProps) {
     };
   });
 
-  const colors = ['#6366f1', '#8b5cf6', '#10b981'];
+  const colors = ['#6366f1', '#10b981'];
   
   return (
     <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 h-[450px] flex flex-col group transition-all hover:border-white/10">
@@ -50,7 +50,7 @@ export function OrderPipeline({ data }: OrderPipelineProps) {
         </ResponsiveContainer>
       </div>
       
-      <div className="mt-4 grid grid-cols-3 gap-4 pt-4 border-t border-white/5">
+      <div className="mt-4 grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
         {chartData.map((d, i) => (
           <div key={i} className="text-center">
             <p className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter mb-1">{d.stage}</p>
