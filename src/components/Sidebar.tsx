@@ -7,7 +7,8 @@ import {
   History,
   FileText,
   User,
-  LogOut
+  LogOut,
+  BarChart3
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -48,6 +49,12 @@ export function Sidebar({ activeTab, setActiveTab, setIsLoggedIn, proposalsCount
           label="Dashboard" 
           active={activeTab === 'dashboard'} 
           onClick={() => setActiveTab('dashboard')} 
+        />
+        <NavItem 
+          icon={<BarChart3 size={20} />} 
+          label="Sales Analytics" 
+          active={activeTab === 'sales'} 
+          onClick={() => setActiveTab('sales')} 
         />
         <NavItem 
           icon={<BrainCircuit size={20} />} 

@@ -19,10 +19,11 @@ import { OrdersTab } from './components/tabs/OrdersTab';
 import { ProposalsTab } from './components/tabs/ProposalsTab';
 import { InvoicesTab } from './components/tabs/InvoicesTab';
 import { CustomersTab } from './components/tabs/CustomersTab';
+import { SalesAnalyticsTab } from './components/tabs/SalesAnalyticsTab';
 import { customerData } from './data/mockData';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'proposals' | 'orders' | 'inventory' | 'suppliers' | 'invoices' | 'customers'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'proposals' | 'orders' | 'inventory' | 'suppliers' | 'invoices' | 'customers' | 'sales'>('dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   const [inventory, setInventory] = useState<any[]>([]);
@@ -32,6 +33,7 @@ export default function App() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [proposals, setProposals] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [salesData, setSalesData] = useState<any[]>([]);
   
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [adjustingProposal, setAdjustingProposal] = useState<number | null>(null);
@@ -68,14 +70,16 @@ export default function App() {
         { data: ordData },
         { data: invcData },
         { data: supPricesData },
-        { data: custData }
+        { data: custData },
+        { data: slsData }
       ] = await Promise.all([
         supabase.from('inventory').select('*, products(*)'),
         supabase.from('suppliers').select('*'),
         supabase.from('orders').select('*, products(*), suppliers(*)').order('id', { ascending: false }),
         supabase.from('invoices').select('*').order('id', { ascending: false }),
         supabase.from('supplier_prices').select('*'),
-        supabase.from('customers').select('*').order('name', { ascending: true })
+        supabase.from('customers').select('*').order('name', { ascending: true }),
+        supabase.from('sales_data').select('*').order('date', { ascending: true })
       ]);
 
       const formattedInventory = (invData || []).map((item: any) => {
@@ -121,6 +125,10 @@ export default function App() {
 
       if (custData) {
         setCustomers(custData);
+      }
+
+      if (slsData) {
+        setSalesData(slsData);
       }
 
       if (ordData) {
@@ -528,6 +536,7 @@ export default function App() {
         <header className="h-16 border-b border-white/5 flex items-center justify-between px-8 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-md z-10">
           <h2 className="text-lg font-semibold text-white">
             {activeTab === 'dashboard' && 'Operations Overview'}
+            {activeTab === 'sales' && 'Sales Analytics & Trends'}
             {activeTab === 'proposals' && 'AI Procurement Proposals'}
             {activeTab === 'orders' && 'Order Tracking'}
             {activeTab === 'invoices' && 'Invoice Audit & Verification'}
@@ -631,6 +640,10 @@ export default function App() {
                 <OrderPipeline data={orders} />
               </div>
             </div>
+          )}
+
+          {activeTab === 'sales' && (
+            <SalesAnalyticsTab salesData={salesData} />
           )}
 
           {activeTab === 'inventory' && (
