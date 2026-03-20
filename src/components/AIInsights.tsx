@@ -42,19 +42,36 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
             response = await generateGroqCompletion([
               {
                 role: "system",
-                content: "You are Betsy, an expert supply chain AI. You provide data-driven, high-impact executive insights. Use bold text for key numbers and metrics. Be direct and actionable."
+                content: "You are an AI operations consultant. You provide data-driven, high-impact executive insights. Use bold text for key numbers and metrics. Be direct and actionable. Output must be in Dutch."
               },
               {
                 role: "user",
-                content: `Analyze this supply chain snapshot and provide 3 high-impact, data-driven insights. 
-                Focus on: stockout risks, financial impact, and supplier performance.
-                
-                Data:
-                - Low Stock: ${lowStockItems.length} items (${lowStockItems.map(i => i.name).join(', ')})
-                - Pending Orders: ${pendingOrders}
-                - Top Suppliers: ${topSuppliers.map(s => `${s.name} (${(s.reliability_score * 100).toFixed(0)}% reliability)`).join(', ')}
-                
-                Format: Use clear icons (🤖, ⚠️, 💡). Use **bold** for all numbers and key terms. Max 25 words per insight.`
+                content: `You are an AI operations consultant.
+
+Analyze this real-time supply chain snapshot and generate exactly 3 high-impact, executive-level insights.
+
+Focus strictly on:
+- Stockout risks (urgency + affected products)
+- Financial impact (cost, revenue risk, savings opportunities)
+- Supplier performance (reliability vs efficiency trade-offs)
+
+Data:
+- Low Stock: ${lowStockItems.length} items (${lowStockItems.map(i => i.name).join(', ')})
+- Pending Orders: ${pendingOrders}
+- Top Suppliers: ${topSuppliers.map(s => `${s.name} (${(s.reliability_score * 100).toFixed(0)}% reliability)`).join(', ')}
+
+Instructions:
+- Each insight must be actionable (include a recommendation)
+- Be specific and data-driven (no generic statements)
+- Highlight risks, inefficiencies, or opportunities
+- Think like a McKinsey consultant
+
+Format rules:
+- Use icons: ⚠️ (risk), 💸 (financial), 🤖 (AI insight), 📦 (operations)
+- Use **bold** for all numbers and key terms.
+- Max 10 scentences.
+- No fluff, no explanations, only insights
+- Output in Dutch`
               }
             ]);
             break; // Success, exit retry loop
@@ -121,7 +138,7 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full text-indigo-400 gap-3">
             <Loader2 className="w-6 h-6 animate-spin" />
-            <span className="text-sm">Analyzing supply chain data with Llama 3.3 70B...</span>
+            <span className="text-sm">Supply chain data analyseren met Llama 3.3 70B...</span>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-full text-rose-400 gap-3 text-center">
@@ -131,7 +148,7 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
               onClick={() => setRetryTrigger(prev => prev + 1)}
               className="mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm transition-colors"
             >
-              Retry
+              Opnieuw proberen
             </button>
           </div>
         ) : insights ? (
@@ -140,7 +157,7 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500 text-sm">
-            Waiting for data to generate insights...
+            Wachten op gegevens om inzichten te genereren...
           </div>
         )}
       </div>
