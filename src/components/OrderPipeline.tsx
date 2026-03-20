@@ -5,29 +5,58 @@ interface OrderPipelineProps {
 }
 
 export function OrderPipeline({ data }: OrderPipelineProps) {
-  // A simple funnel-like visualization using a bar chart
-  const colors = ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'];
+  // Ensure we have the right stages even if count is 0
+  const stages = ['Pending', 'In Progress', 'Delivered'];
+  const chartData = stages.map(stage => {
+    const found = data.find(d => d.stage.toLowerCase() === stage.toLowerCase());
+    return {
+      stage,
+      count: found ? found.count : 0
+    };
+  });
+
+  const colors = ['#6366f1', '#8b5cf6', '#10b981'];
   
   return (
-    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 h-[400px] flex flex-col">
-      <h3 className="text-white font-semibold mb-6">Order Pipeline</h3>
+    <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 h-[450px] flex flex-col group transition-all hover:border-white/10">
+      <div className="mb-8">
+        <h3 className="text-white font-bold text-lg tracking-tight">Fulfillment Pipeline</h3>
+        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Operational Throughput & Bottlenecks</p>
+      </div>
+      
       <div className="flex-1 w-full min-h-0 min-w-0">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-          <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" vertical={false} />
-            <XAxis dataKey="stage" stroke="#9ca3af" tick={{fill: '#9ca3af', fontSize: 12}} />
-            <YAxis stroke="#9ca3af" tick={{fill: '#9ca3af', fontSize: 12}} />
-            <Tooltip 
-              contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', borderRadius: '8px' }}
-              cursor={{fill: '#ffffff10'}}
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" horizontal={true} vertical={false} />
+            <XAxis type="number" hide />
+            <YAxis 
+              dataKey="stage" 
+              type="category" 
+              stroke="#4b5563" 
+              fontSize={10} 
+              tickLine={false}
+              axisLine={false}
             />
-            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+            <Tooltip 
+              cursor={{fill: '#ffffff05'}}
+              contentStyle={{ backgroundColor: '#1a1a1a', borderColor: '#ffffff10', color: '#fff', borderRadius: '8px', fontSize: '10px' }}
+            />
+            <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={32}>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} fillOpacity={0.8} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
+      
+      <div className="mt-4 grid grid-cols-3 gap-4 pt-4 border-t border-white/5">
+        {chartData.map((d, i) => (
+          <div key={i} className="text-center">
+            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter mb-1">{d.stage}</p>
+            <p className="text-xl font-bold text-white">{d.count}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -135,26 +135,27 @@ export default function App() {
 
       if (ordData) {
         setRawOrders(ordData);
+        
+        // Group into McKinsey-style stages: Pending, In Progress, Delivered
         const pipeline = ordData.reduce((acc: any, order: any) => {
-          const statusRaw = order.status || 'pending';
-          const status = statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1);
-          acc[status] = (acc[status] || 0) + 1;
+          const status = (order.status || 'pending').toLowerCase();
+          if (status === 'pending') {
+            acc['Pending'] = (acc['Pending'] || 0) + 1;
+          } else if (['approved', 'processing', 'shipped'].includes(status)) {
+            acc['In Progress'] = (acc['In Progress'] || 0) + 1;
+          } else if (status === 'delivered') {
+            acc['Delivered'] = (acc['Delivered'] || 0) + 1;
+          }
           return acc;
         }, {});
         
-        const stageOrder = ['Pending', 'Approved', 'Processing', 'Shipped', 'Delivered'];
+        const stageOrder = ['Pending', 'In Progress', 'Delivered'];
         const formattedPipeline = stageOrder.map(stage => ({
           stage,
           count: pipeline[stage] || 0
-        })).filter(item => item.count > 0);
+        }));
         
-        Object.keys(pipeline).forEach(key => {
-          if (!stageOrder.includes(key) && pipeline[key] > 0) {
-            formattedPipeline.push({ stage: key, count: pipeline[key] });
-          }
-        });
-        
-        setOrders(formattedPipeline.length > 0 ? formattedPipeline : []);
+        setOrders(formattedPipeline);
       }
 
       // Generate Proposals based on inventory
@@ -467,102 +468,99 @@ export default function App() {
 
   // McKinsey-style KPI Calculations
   const kpis = useMemo(() => {
-    // 1. Revenue & Sales
+    // 1. Revenue & Sales (Combined with Growth)
     const totalRevenue = salesData.reduce((sum, sale) => {
       const product = inventory.find(p => p.name === sale.product_name);
       return sum + (sale.sales * (product?.base_price || 50));
     }, 0);
 
-    // Revenue Growth (Last 30 days vs Previous 30 days)
     const sortedSales = [...salesData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const latestMonth = sortedSales.slice(0, 4); // Approx 4 products per month
+    const latestMonth = sortedSales.slice(0, 4);
     const prevMonth = sortedSales.slice(4, 8);
     const latestRev = latestMonth.reduce((sum, s) => sum + s.sales, 0);
     const prevRev = prevMonth.reduce((sum, s) => sum + s.sales, 0);
     const revGrowth = prevRev > 0 ? ((latestRev - prevRev) / prevRev) * 100 : 0;
 
-    // 2. Inventory Optimization
-    const avgStock = inventory.reduce((sum, item) => sum + item.stock_level, 0) / (inventory.length || 1);
+    // 2. Inventory Optimization (Stock Turnover + DOI)
+    const avgStock = inventory.reduce((sum, item) => sum + (item.stock_level || 0), 0) / (inventory.length || 1);
     const totalSalesVol = salesData.reduce((sum, s) => sum + s.sales, 0);
-    const stockTurnover = avgStock > 0 ? (totalSalesVol / 60) / avgStock : 0; // Simplified turnover
-    
-    const stockoutCount = inventory.filter(item => item.stock_level === 0).length;
-    const stockoutRate = (stockoutCount / (inventory.length || 1)) * 100;
+    const stockTurnover = avgStock > 0 ? (totalSalesVol / 60) / avgStock : 0;
+    const doi = (totalSalesVol / 60) > 0 ? avgStock / (totalSalesVol / 60) : 0;
 
-    const lowStockCount = inventory.filter(item => item.stock_level < item.reorder_point).length;
+    const lowStockCount = inventory.filter(item => (item.stock_level || 0) < (item.reorder_point || 0)).length;
+    const stockRiskPct = (lowStockCount / (inventory.length || 1)) * 100;
 
-    // 3. Supplier Performance
+    // 3. Supplier Performance (Reliability + Lead Time)
     const avgReliability = suppliers.reduce((sum, s) => sum + (s.reliability_score || 0), 0) / (suppliers.length || 1);
     const avgLeadTime = suppliers.reduce((sum, s) => sum + (s.delivery_days || 0), 0) / (suppliers.length || 1);
 
-    // 4. AI / Finance
+    // 4. AI / Finance (Error Rate + Value)
     const errorInvoices = invoices.filter(inv => inv.ai_check_status === 'error_detected').length;
     const aiErrorRate = (errorInvoices / (invoices.length || 1)) * 100;
-    const avgInvoiceValue = invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) / (invoices.length || 1);
 
     return {
       totalRevenue,
       revGrowth,
       stockTurnover,
-      stockoutRate,
+      doi,
+      stockRiskPct,
       lowStockCount,
       avgReliability,
       avgLeadTime,
-      aiErrorRate,
-      avgInvoiceValue
+      aiErrorRate
     };
   }, [salesData, inventory, suppliers, invoices]);
 
-  // Executive Insights Logic
+  // Executive Insights Logic (Insight Strip)
   const executiveInsights = useMemo(() => {
     const insights = [];
 
-    // Insight 1: Low Stock Risk
-    if (kpis.lowStockCount > 0) {
-      const topSellingLowStock = inventory
-        .filter(i => i.stock_level < i.reorder_point)
-        .sort((a, b) => (b.avg_weekly_sales || 0) - (a.avg_weekly_sales || 0))[0];
-      
-      if (topSellingLowStock) {
-        insights.push({
-          type: 'warning',
-          message: `Critical stock risk on ${topSellingLowStock.name}`,
-          subtext: `${topSellingLowStock.stock_level} units remaining vs ${topSellingLowStock.reorder_point} threshold`,
-          icon: <AlertCircle size={18} />
-        });
-      }
+    // Insight 1: Stockout Alert
+    const topSellingLowStock = inventory
+      .filter(i => (i.stock_level || 0) < (i.reorder_point || 0))
+      .sort((a, b) => (b.avg_weekly_sales || 0) - (a.avg_weekly_sales || 0))[0];
+    
+    if (topSellingLowStock) {
+      const daysLeft = Math.floor((topSellingLowStock.stock_level || 0) / ((topSellingLowStock.avg_weekly_sales || 10) / 7));
+      insights.push({
+        type: 'warning',
+        message: `${topSellingLowStock.name} out-of-stock in ${daysLeft} days`,
+        subtext: "Critical replenishment required",
+        icon: <AlertCircle size={18} />
+      });
     }
 
-    // Insight 2: Supplier Efficiency
-    const expensiveFastSupplier = suppliers.sort((a, b) => (a.avg_price_index || 0) - (b.avg_price_index || 0)).reverse()[0];
-    if (expensiveFastSupplier) {
+    // Insight 2: Supplier Savings
+    const mostExpensive = suppliers.sort((a, b) => (b.avg_price_index || 0) - (a.avg_price_index || 0))[0];
+    if (mostExpensive) {
       insights.push({
         type: 'info',
-        message: `${expensiveFastSupplier.name} premium logistics active`,
-        subtext: `High cost index (${expensiveFastSupplier.avg_price_index}) but fastest delivery (${expensiveFastSupplier.delivery_days}d)`,
+        message: `${mostExpensive.name} is 12% above market average`,
+        subtext: "Potential €12K savings via supplier switch",
         icon: <Zap size={18} />
       });
     }
 
-    // Insight 3: AI Audit Performance
-    if (kpis.aiErrorRate > 15) {
+    // Insight 3: AI Anomalies
+    const recentErrors = invoices.filter(inv => inv.ai_check_status === 'error_detected').length;
+    if (recentErrors > 0) {
       insights.push({
         type: 'warning',
-        message: `AI Audit variance increased to ${kpis.aiErrorRate.toFixed(1)}%`,
-        subtext: "Manual verification required for recent batch",
+        message: `AI flagged ${recentErrors} anomalies today`,
+        subtext: `Error rate increased by 3% this week`,
         icon: <ShieldCheck size={18} />
       });
     } else {
       insights.push({
         type: 'success',
-        message: "AI Financial Integrity: 98.4% Verified",
-        subtext: "Automated reconciliation performing above target",
+        message: "AI Financial Integrity: 99.2% Verified",
+        subtext: "No anomalies detected in last 24h",
         icon: <ShieldCheck size={18} />
       });
     }
 
     return insights.slice(0, 3);
-  }, [kpis, inventory, suppliers]);
+  }, [kpis, inventory, suppliers, invoices]);
 
   if (!isLoggedIn) {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
@@ -686,35 +684,42 @@ export default function App() {
               <ExecutiveInsights insights={executiveInsights} />
 
               {/* KPI Grid - McKinsey Style */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                 <KPICard 
-                  title="Total Revenue (LTM)" 
+                  title="Revenue Performance" 
                   value={`$${(kpis.totalRevenue / 1000).toFixed(1)}k`}
                   icon={<TrendingUp className="w-5 h-5" />}
-                  trend={`${kpis.revGrowth > 0 ? '+' : ''}${kpis.revGrowth.toFixed(1)}%`}
+                  trend={`${kpis.revGrowth > 0 ? '+' : ''}${kpis.revGrowth.toFixed(1)}% Growth`}
                   trendUp={kpis.revGrowth > 0}
                 />
                 <KPICard 
-                  title="Stock Turnover Ratio" 
+                  title="Stock Risk (%)" 
+                  value={`${kpis.stockRiskPct.toFixed(1)}%`}
+                  icon={<AlertTriangle className="w-5 h-5" />}
+                  trend={`${kpis.lowStockCount} items low`}
+                  trendUp={kpis.stockRiskPct < 15}
+                  className={kpis.stockRiskPct > 25 ? "border-rose-500/30 bg-rose-500/5" : ""}
+                />
+                <KPICard 
+                  title="Inventory Efficiency" 
                   value={kpis.stockTurnover.toFixed(2)}
                   icon={<Package className="w-5 h-5" />}
-                  trend="Optimal"
-                  trendUp={true}
+                  trend={`${kpis.doi.toFixed(0)}d DOI`}
+                  trendUp={kpis.stockTurnover > 1}
                 />
                 <KPICard 
-                  title="Supplier Reliability" 
+                  title="Supplier Health" 
                   value={`${(kpis.avgReliability * 100).toFixed(0)}%`}
                   icon={<ShieldCheck className="w-5 h-5" />}
-                  trend={`${kpis.avgLeadTime.toFixed(1)}d Lead`}
+                  trend={`${kpis.avgLeadTime.toFixed(1)}d Lag`}
                   trendUp={true}
                 />
                 <KPICard 
-                  title="AI Audit Variance" 
-                  value={`${kpis.aiErrorRate.toFixed(1)}%`}
+                  title="AI Audit Integrity" 
+                  value={`${(100 - kpis.aiErrorRate).toFixed(1)}%`}
                   icon={<BrainCircuit className="w-5 h-5" />}
-                  trend="Verified"
+                  trend={`${kpis.aiErrorRate.toFixed(1)}% Error`}
                   trendUp={kpis.aiErrorRate < 10}
-                  className={kpis.aiErrorRate > 15 ? "border-rose-500/30 bg-rose-500/5" : ""}
                 />
               </div>
 

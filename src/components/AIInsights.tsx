@@ -31,6 +31,7 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
         const lowStockItems = inventory.filter(i => (i.stock_level || 0) < (i.reorder_point || 0));
         const topSuppliers = suppliers.sort((a, b) => (b.reliability_score || 0) - (a.reliability_score || 0)).slice(0, 3);
         const pendingOrders = orders.find(o => o.stage === 'Pending')?.count || 0;
+        const inProgressOrders = orders.find(o => o.stage === 'In Progress')?.count || 0;
 
         let response;
         let retries = 3;
@@ -41,19 +42,19 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
             response = await generateGroqCompletion([
               {
                 role: "system",
-                content: "You are an expert procurement and supply chain AI assistant named Betsy."
+                content: "You are an expert procurement and supply chain AI assistant named Betsy. You provide data-driven, high-impact insights for executives. Focus on numbers, risks, and savings."
               },
               {
                 role: "user",
-                content: `Analyze the following supply chain data and provide 3 concise, actionable insights or recommendations.
-
-Data Summary:
-- Total Inventory Items: ${inventory.length}
-- Low Stock Items: ${lowStockItems.length} (${lowStockItems.map(i => i.name).join(', ')})
-- Top 3 Reliable Suppliers: ${topSuppliers.map(s => s.name).join(', ')}
-- Pending Orders: ${pendingOrders}
-
-Provide your insights in a clear, bulleted list. Do not include any introductory or concluding remarks.`
+                content: `Analyze this supply chain snapshot and provide 3 ultra-concise, data-driven insights. 
+                Focus on: AI error rates, stockout risks, and supplier cost/reliability trade-offs.
+                
+                Data:
+                - Low Stock: ${lowStockItems.length} items (${lowStockItems.map(i => i.name).join(', ')})
+                - Pipeline: ${pendingOrders} Pending, ${inProgressOrders} In Progress
+                - Top Suppliers: ${topSuppliers.map(s => `${s.name} (${(s.reliability_score * 100).toFixed(0)}% rel)`).join(', ')}
+                
+                Format: Use bold numbers and clear icons (🤖, ⚠️, 💡). Max 15 words per insight.`
               }
             ]);
             break; // Success, exit retry loop
