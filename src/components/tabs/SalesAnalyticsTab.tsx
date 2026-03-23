@@ -1,3 +1,8 @@
+// Dit is de pagina voor de verkoopanalyse.
+// We gebruiken Recharts om mooie grafieken te maken van de verkoopcijfers.
+// Ik heb useMemo gebruikt om de data alleen opnieuw te berekenen als dat nodig is.
+// Dat is beter voor de snelheid van de app.
+
 import React, { useMemo } from 'react';
 import { 
   LineChart, 
@@ -14,8 +19,10 @@ import {
 import { TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
 
 export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
+  // We halen alle unieke productnamen op
   const products = useMemo(() => Array.from(new Set(salesData.map(d => d.product_name))), [salesData]);
   
+  // We zetten de data om in een formaat dat Recharts begrijpt
   const chartData = useMemo(() => {
     const dates = Array.from(new Set(salesData.map(d => d.date))).sort();
     return dates.map(date => {
@@ -28,6 +35,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     });
   }, [salesData, products]);
 
+  // We berekenen wat statistieken per product
   const stats = useMemo(() => {
     return products.map(product => {
       const productSales = salesData.filter(d => d.product_name === product).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -52,6 +60,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
 
   return (
     <div className="space-y-8">
+      {/* Statistieken kaartjes bovenaan */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat: any, idx) => (
           <div key={stat.name} className="bg-[#141414] border border-white/5 rounded-2xl p-6">
@@ -59,7 +68,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-2xl font-bold text-white">{stat.latest}</p>
-                <p className="text-[10px] text-gray-500 mt-1">Total: {stat.total.toLocaleString()}</p>
+                <p className="text-[10px] text-gray-500 mt-1">Totaal: {stat.total.toLocaleString()}</p>
               </div>
               <div className={`flex items-center gap-1 text-xs font-bold ${
                 stat.trend === 'up' ? 'text-emerald-500' : stat.trend === 'down' ? 'text-rose-500' : 'text-gray-500'
@@ -72,15 +81,16 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
         ))}
       </div>
 
+      {/* De grote grafiek met trends */}
       <div className="bg-[#141414] border border-white/5 rounded-2xl p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h3 className="text-xl font-bold text-white">Sales History & Trends</h3>
-            <p className="text-xs text-gray-500 mt-1">5-year monthly performance tracking</p>
+            <h3 className="text-xl font-bold text-white">Verkoopgeschiedenis & Trends</h3>
+            <p className="text-xs text-gray-500 mt-1">Maandelijkse prestaties over 5 jaar</p>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg">
             <BarChart3 size={16} className="text-gray-400" />
-            <span className="text-xs text-gray-300">Monthly View</span>
+            <span className="text-xs text-gray-300">Maandoverzicht</span>
           </div>
         </div>
 
@@ -136,8 +146,9 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Seizoensgebondenheid analyse */}
         <div className="bg-[#141414] border border-white/5 rounded-2xl p-8">
-          <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-6">Seasonality Analysis</h4>
+          <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-6">Seizoensgebondenheid Analyse</h4>
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
               <div className="flex items-center gap-3">
@@ -145,11 +156,11 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   <TrendingUp size={18} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">Peak Seasons</p>
-                  <p className="text-[10px] text-gray-500">July & December</p>
+                  <p className="text-sm font-medium text-white">Hoogseizoen</p>
+                  <p className="text-[10px] text-gray-500">Juli & December</p>
                 </div>
               </div>
-              <span className="text-xs font-bold text-emerald-500">+50% Avg</span>
+              <span className="text-xs font-bold text-emerald-500">+50% Gem.</span>
             </div>
             <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
               <div className="flex items-center gap-3">
@@ -157,17 +168,18 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   <TrendingDown size={18} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">Low Seasons</p>
-                  <p className="text-[10px] text-gray-500">February & August</p>
+                  <p className="text-sm font-medium text-white">Laagseizoen</p>
+                  <p className="text-[10px] text-gray-500">Februari & Augustus</p>
                 </div>
               </div>
-              <span className="text-xs font-bold text-rose-500">-30% Avg</span>
+              <span className="text-xs font-bold text-rose-500">-30% Gem.</span>
             </div>
           </div>
         </div>
 
+        {/* Groei projecties */}
         <div className="bg-[#141414] border border-white/5 rounded-2xl p-8">
-          <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-6">Growth Projections</h4>
+          <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-6">Groeiprojecties</h4>
           <div className="space-y-4">
             {stats.sort((a, b) => b.growth - a.growth).map((stat: any) => (
               <div key={stat.name} className="flex items-center gap-4">

@@ -1,3 +1,7 @@
+// Dit is de facturen tab. Hier checkt Betsy (onze AI) of de facturen kloppen met de bestellingen.
+// Als er iets niet klopt, krijgen we een rode waarschuwing.
+// Ik heb ook een PDF download functie gemaakt met jsPDF, dat was best wel wat uitzoekwerk!
+
 import React from 'react';
 import { motion } from 'motion/react';
 import { ArrowRight, AlertTriangle, CheckCircle2, BrainCircuit, Download } from 'lucide-react';
@@ -6,6 +10,7 @@ import autoTable from 'jspdf-autotable';
 
 export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, updateInvoice }: any) {
   
+  // Hulpfunctie om plaatjes te laden voor de PDF (logo's van leveranciers)
   const loadImage = (url: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -19,7 +24,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
           ctx.drawImage(img, 0, 0);
           resolve(canvas.toDataURL('image/png'));
         } else {
-          reject(new Error('Could not get canvas context'));
+          reject(new Error('Kon canvas context niet ophalen'));
         }
       };
       img.onerror = reject;
@@ -27,30 +32,31 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
     });
   };
 
+  // Functie om een mooie PDF factuur te genereren
   const downloadPDF = async (invoice: any) => {
     const doc = new jsPDF();
     
-    const vendorName = invoice.vendor || 'Unknown Vendor';
+    const vendorName = invoice.vendor || 'Onbekende Leverancier';
     
-    // Add Header
+    // Header toevoegen
     doc.setFontSize(24);
     doc.setTextColor(40, 40, 40);
-    doc.text('INVOICE', 14, 22);
+    doc.text('FACTUUR', 14, 22);
     
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Invoice Number: ${invoice.invoice_number}`, 14, 30);
-    doc.text(`Date: ${invoice.invoice_date || 'N/A'}`, 14, 35);
-    doc.text(`Due Date: ${invoice.due_date || 'N/A'}`, 14, 40);
+    doc.text(`Factuurnummer: ${invoice.invoice_number}`, 14, 30);
+    doc.text(`Datum: ${invoice.invoice_date || 'N/A'}`, 14, 35);
+    doc.text(`Vervaldatum: ${invoice.due_date || 'N/A'}`, 14, 40);
     
-    // Add Vendor Info
+    // Leverancier info
     doc.setFontSize(14);
     doc.setTextColor(40, 40, 40);
-    doc.text('From:', 120, 22);
+    doc.text('Van:', 120, 22);
     doc.setFontSize(12);
     doc.text(vendorName, 120, 30);
     
-    // Try to load and add logo
+    // Logo proberen te laden
     const normalizedVendor = vendorName.toLowerCase().replace(/\s+/g, '');
     let logoUrl = null;
     if (normalizedVendor.includes('fastfootwear')) logoUrl = '/FastFootwear.png';
@@ -62,10 +68,10 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
         const base64Img = await loadImage(logoUrl);
         doc.addImage(base64Img, 'PNG', 120, 35, 60, 20);
       } else {
-        throw new Error('No logo found');
+        throw new Error('Geen logo gevonden');
       }
     } catch (e) {
-      // Fallback to text box if image fails to load
+      // Fallback als het plaatje niet laadt
       doc.setDrawColor(200, 200, 200);
       doc.setFillColor(245, 245, 245);
       doc.roundedRect(120, 35, 60, 20, 2, 2, 'FD');
@@ -74,18 +80,18 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
       doc.text(`${vendorName} Logo`, 130, 46);
     }
     
-    // Add Bill To
+    // Factuuradres
     doc.setFontSize(14);
     doc.setTextColor(40, 40, 40);
-    doc.text('Bill To:', 14, 65);
+    doc.text('Factuur naar:', 14, 65);
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text('Your Company Name', 14, 72);
-    doc.text('123 Business Avenue', 14, 77);
-    doc.text('Business City, 10001', 14, 82);
+    doc.text('SportWinkels B.V.', 14, 72);
+    doc.text('Studentenweg 42', 14, 77);
+    doc.text('Utrecht, 3584 AA', 14, 82);
 
-    // Add Items Table
-    const tableColumn = ["Product Name", "Quantity", "Unit Price", "Total"];
+    // Tabel met items
+    const tableColumn = ["Product Naam", "Aantal", "Stukprijs", "Totaal"];
     const tableRows: any[] = [];
 
     if (invoice.items && Array.isArray(invoice.items)) {
@@ -110,32 +116,32 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
       alternateRowStyles: { fillColor: [245, 245, 245] }
     });
 
-    // Add Totals
+    // Totalen onderaan de tabel
     const finalY = (doc as any).lastAutoTable.finalY || 95;
     
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text('Subtotal:', 130, finalY + 10);
+    doc.text('Subtotaal:', 130, finalY + 10);
     doc.text(`€${Number(invoice.subtotal || 0).toFixed(2)}`, 190, finalY + 10, { align: 'right' });
     
-    doc.text(`VAT (${invoice.tax_percentage || 0}%):`, 130, finalY + 16);
+    doc.text(`BTW (${invoice.tax_percentage || 0}%):`, 130, finalY + 16);
     const taxAmount = (invoice.subtotal || 0) * ((invoice.tax_percentage || 0) / 100);
     doc.text(`€${taxAmount.toFixed(2)}`, 190, finalY + 16, { align: 'right' });
     
     doc.setFontSize(12);
     doc.setTextColor(40, 40, 40);
     doc.setFont('helvetica', 'bold');
-    doc.text('Total Amount:', 130, finalY + 24);
+    doc.text('Totaalbedrag:', 130, finalY + 24);
     doc.text(`€${Number(invoice.total_amount || 0).toFixed(2)}`, 190, finalY + 24, { align: 'right' });
 
-    // Add Footer
+    // Footer
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text('Thank you for your business!', 105, 280, { align: 'center' });
+    doc.text('Bedankt voor de samenwerking!', 105, 280, { align: 'center' });
 
-    // Save PDF
-    doc.save(`Invoice_${invoice.invoice_number || 'Draft'}.pdf`);
+    // PDF opslaan
+    doc.save(`Factuur_${invoice.invoice_number || 'Concept'}.pdf`);
   };
 
   return (
@@ -146,7 +152,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
           animate={{ opacity: 1, y: 0 }}
           className="bg-[#141414] border border-white/10 rounded-2xl overflow-hidden"
         >
-          {/* Invoice Detail Header */}
+          {/* Factuur Detail Header */}
           <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
             <div className="flex items-center gap-4">
               <button 
@@ -155,7 +161,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
               >
                 <ArrowRight className="rotate-180" size={20} />
               </button>
-              <h3 className="text-xl font-bold text-white">Invoice Detail: {selectedInvoice?.invoice_number}</h3>
+              <h3 className="text-xl font-bold text-white">Factuur Detail: {selectedInvoice?.invoice_number}</h3>
             </div>
             <div className="flex gap-3">
               <button 
@@ -169,19 +175,19 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                 onClick={() => updateInvoice(selectedInvoice)}
                 className="px-6 py-2 bg-emerald-500 text-black font-bold rounded-xl hover:bg-emerald-400 transition-all"
               >
-                Save & AI Validate
+                Opslaan & AI Validatie
               </button>
             </div>
           </div>
 
           <div className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-12">
-            {/* Left Column: Info */}
+            {/* Linker kolom: Info */}
             <div className="lg:col-span-2 space-y-8">
               {selectedInvoice.ai_check_status === 'error' && (
                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
                   <AlertTriangle className="text-red-500 shrink-0" size={20} />
                   <div>
-                    <p className="text-red-500 font-bold text-sm">AI Agent Alert: Discrepancy Found</p>
+                    <p className="text-red-500 font-bold text-sm">AI Agent Alert: Afwijking Gevonden</p>
                     <p className="text-red-400/80 text-xs mt-1">{selectedInvoice?.ai_error_message}</p>
                   </div>
                 </div>
@@ -189,7 +195,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
 
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Supplier Information</label>
+                  <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Leverancier Informatie</label>
                   <div className="bg-white/5 p-4 rounded-xl border border-white/5">
                     <div className="flex items-center gap-3">
                       {selectedInvoice?.vendor?.toLowerCase()?.includes('fastfootwear') && (
@@ -203,13 +209,13 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                       )}
                       <div>
                         <p className="text-white font-bold">{selectedInvoice?.vendor}</p>
-                        <p className="text-gray-500 text-xs mt-1">B2B Verified Partner</p>
+                        <p className="text-gray-500 text-xs mt-1">B2B Geverifieerde Partner</p>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <label className="block text-[10px] text-gray-500 uppercase tracking-widest">PO Reference</label>
+                  <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Inkooporder Referentie</label>
                   <input 
                     type="text"
                     value={selectedInvoice?.po_reference || ''}
@@ -220,15 +226,15 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
               </div>
 
               <div className="space-y-4">
-                <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Invoice Items (Editable)</label>
+                <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Factuur Items (Bewerkbaar)</label>
                 <div className="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="text-gray-500 border-b border-white/5">
-                        <th className="px-6 py-4 font-medium">Product Name</th>
-                        <th className="px-6 py-4 font-medium">Qty</th>
-                        <th className="px-6 py-4 font-medium">Unit Price</th>
-                        <th className="px-6 py-4 font-medium text-right">Total</th>
+                        <th className="px-6 py-4 font-medium">Product Naam</th>
+                        <th className="px-6 py-4 font-medium">Aantal</th>
+                        <th className="px-6 py-4 font-medium">Stukprijs</th>
+                        <th className="px-6 py-4 font-medium text-right">Totaal</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -300,14 +306,14 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
               </div>
             </div>
 
-            {/* Right Column: Financials */}
+            {/* Rechter kolom: Financiën */}
             <div className="space-y-8">
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
                 <div className="space-y-4">
-                  <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Invoice Details</label>
+                  <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Factuur Details</label>
                   <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <p className="text-[10px] text-gray-500 mb-1">Invoice Date</p>
+                      <p className="text-[10px] text-gray-500 mb-1">Factuurdatum</p>
                       <input 
                         type="date"
                         value={selectedInvoice?.invoice_date || ''}
@@ -316,7 +322,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                       />
                     </div>
                     <div>
-                      <p className="text-[10px] text-gray-500 mb-1">Due Date</p>
+                      <p className="text-[10px] text-gray-500 mb-1">Vervaldatum</p>
                       <input 
                         type="date"
                         value={selectedInvoice?.due_date || ''}
@@ -329,11 +335,11 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
 
                 <div className="space-y-4 pt-6 border-t border-white/5">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Subtotal</span>
+                    <span className="text-gray-500">Subtotaal</span>
                     <span className="text-white font-mono">€{Number(selectedInvoice?.subtotal || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">VAT (%)</span>
+                    <span className="text-gray-500">BTW (%)</span>
                     <input 
                       type="number"
                       value={selectedInvoice?.tax_percentage || 0}
@@ -350,7 +356,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                     />
                   </div>
                   <div className="flex justify-between pt-4 border-t border-white/10">
-                    <span className="text-white font-bold">Total Amount</span>
+                    <span className="text-white font-bold">Totaalbedrag</span>
                     <span className="text-xl font-bold text-emerald-500 font-mono">€{Number(selectedInvoice?.total_amount || 0).toFixed(2)}</span>
                   </div>
                 </div>
@@ -362,12 +368,12 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                   {selectedInvoice.ai_check_status === 'ok' ? (
                     <>
                       <CheckCircle2 className="text-emerald-500" size={16} />
-                      <span className="text-sm text-emerald-200">Verified & Matched</span>
+                      <span className="text-sm text-emerald-200">Geverifieerd & Match</span>
                     </>
                   ) : (
                     <>
                       <AlertTriangle className="text-red-500" size={16} />
-                      <span className="text-sm text-red-200">Discrepancy Detected</span>
+                      <span className="text-sm text-red-200">Afwijking Gedetecteerd</span>
                     </>
                   )}
                 </div>
@@ -393,8 +399,8 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
               <BrainCircuit className="hidden text-emerald-500" size={24} />
             </div>
             <div>
-              <h3 className="text-white font-bold mb-1">AI Invoice Auditor</h3>
-              <p className="text-sm text-gray-400">Betsy is monitoring incoming invoices. {invoices.filter((i: any) => i.ai_check_status === 'error').length} discrepancies found.</p>
+              <h3 className="text-white font-bold mb-1">AI Factuur Auditor</h3>
+              <p className="text-sm text-gray-400">Betsy controleert inkomende facturen. {invoices.filter((i: any) => i.ai_check_status === 'error').length} afwijkingen gevonden.</p>
             </div>
           </div>
 
@@ -403,12 +409,12 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="text-gray-500 border-b border-white/5">
-                    <th className="px-6 py-4 font-medium">Invoice #</th>
-                    <th className="px-6 py-4 font-medium">Supplier</th>
-                    <th className="px-6 py-4 font-medium">Date</th>
-                    <th className="px-6 py-4 font-medium text-right">Total</th>
+                    <th className="px-6 py-4 font-medium">Factuur #</th>
+                    <th className="px-6 py-4 font-medium">Leverancier</th>
+                    <th className="px-6 py-4 font-medium">Datum</th>
+                    <th className="px-6 py-4 font-medium text-right">Totaal</th>
                     <th className="px-6 py-4 font-medium">AI Status</th>
-                    <th className="px-6 py-4 font-medium text-right">Action</th>
+                    <th className="px-6 py-4 font-medium text-right">Actie</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -435,7 +441,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                         {inv.ai_check_status === 'error' ? (
                           <div className="flex items-center gap-2 text-red-400">
                             <AlertTriangle size={14} />
-                            <span className="text-xs font-bold uppercase">Error</span>
+                            <span className="text-xs font-bold uppercase">Fout</span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2 text-emerald-500">
@@ -457,7 +463,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                             onClick={() => setSelectedInvoice(inv)}
                             className="px-4 py-1.5 bg-white/5 hover:bg-white/10 text-white text-xs font-medium rounded-lg transition-all border border-white/5"
                           >
-                            View & Edit
+                            Bekijk & Bewerk
                           </button>
                         </div>
                       </td>

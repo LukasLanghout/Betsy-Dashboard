@@ -1,3 +1,7 @@
+// Dit component voorspelt wanneer de voorraad op is.
+// We berekenen dit door de huidige voorraad te delen door de gemiddelde verkoop per week.
+// Als het resultaat laag is, kleurt de balk rood.
+
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface StockOutPredictorProps {
@@ -5,7 +9,7 @@ interface StockOutPredictorProps {
 }
 
 export function StockOutPredictor({ data }: StockOutPredictorProps) {
-  // Calculate weeks until stock out
+  // Bereken hoeveel weken we nog voorraad hebben
   const chartData = data.map(item => ({
     name: item.name,
     currentStock: item.stock_level,
@@ -15,7 +19,7 @@ export function StockOutPredictor({ data }: StockOutPredictorProps) {
 
   return (
     <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 h-[400px] flex flex-col">
-      <h3 className="text-white font-semibold mb-6">Stock-out Predictor (Weeks)</h3>
+      <h3 className="text-white font-semibold mb-6">Voorraad-op Voorspeller (Weken)</h3>
       <div className="flex-1 w-full min-h-0 min-w-0">
         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
@@ -27,7 +31,7 @@ export function StockOutPredictor({ data }: StockOutPredictorProps) {
               itemStyle={{ color: '#fff' }}
               cursor={{fill: '#ffffff10'}}
             />
-            <Bar dataKey="weeksUntilStockOut" name="Weeks to Stock-out" radius={[0, 4, 4, 0]}>
+            <Bar dataKey="weeksUntilStockOut" name="Weken tot voorraad op is" radius={[0, 4, 4, 0]}>
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.isLow ? '#f43f5e' : '#6366f1'} />
               ))}

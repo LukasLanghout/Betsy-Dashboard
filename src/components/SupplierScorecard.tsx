@@ -1,3 +1,8 @@
+// Dit is een matrix voor de leveranciers.
+// We kijken naar de prijs, betrouwbaarheid en snelheid.
+// Hoe hoger en meer naar rechts, hoe beter de leverancier is.
+// De grootte van de bubbel laat zien hoe snel ze leveren.
+
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
 interface SupplierScorecardProps {
@@ -5,33 +10,33 @@ interface SupplierScorecardProps {
 }
 
 export function SupplierScorecard({ data }: SupplierScorecardProps) {
-  // Normalize data for scatter plot
-  // X = Price Index (Lower is better)
-  // Y = Reliability Score (Higher is better)
-  // Z = Delivery Days (Smaller bubble is faster, but we'll use it for size)
+  // We normaliseren de data voor de scatter plot
+  // X = Prijs Index (Lager is beter)
+  // Y = Betrouwbaarheid Score (Hoger is beter)
+  // Z = Levertijd (Kleine bubbel is sneller, maar we gebruiken het voor de grootte)
   const chartData = data.map(s => ({
     name: s.name,
     price: s.avg_price_index || 100,
     reliability: (s.reliability_score || 0.9) * 100,
     delivery: s.delivery_days || 5,
-    z: 100 / (s.delivery_days || 1) // Inverse for size: faster = bigger bubble
+    z: 100 / (s.delivery_days || 1) // Omgekeerd voor grootte: sneller = grotere bubbel
   }));
 
   return (
     <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 h-[450px] flex flex-col group transition-all hover:border-white/10">
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h3 className="text-white font-bold text-lg tracking-tight">Supplier Strategic Matrix</h3>
-          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Price vs Reliability vs Speed</p>
+          <h3 className="text-white font-bold text-lg tracking-tight">Leverancier Strategische Matrix</h3>
+          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Prijs vs Betrouwbaarheid vs Snelheid</p>
         </div>
         <div className="flex gap-4 text-[10px] font-bold uppercase tracking-widest">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-indigo-500" />
-            <span className="text-gray-400">Reliable</span>
+            <span className="text-gray-400">Betrouwbaar</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-gray-400">Fast</span>
+            <span className="text-gray-400">Snel</span>
           </div>
         </div>
       </div>
@@ -43,22 +48,22 @@ export function SupplierScorecard({ data }: SupplierScorecardProps) {
             <XAxis 
               type="number" 
               dataKey="price" 
-              name="Price Index" 
+              name="Prijs Index" 
               unit="" 
               stroke="#4b5563" 
               fontSize={10}
-              label={{ value: 'Price Index (Lower is Better)', position: 'bottom', fill: '#4b5563', fontSize: 10, offset: 0 }}
+              label={{ value: 'Prijs Index (Lager is Beter)', position: 'bottom', fill: '#4b5563', fontSize: 10, offset: 0 }}
             />
             <YAxis 
               type="number" 
               dataKey="reliability" 
-              name="Reliability" 
+              name="Betrouwbaarheid" 
               unit="%" 
               stroke="#4b5563" 
               fontSize={10}
-              label={{ value: 'Reliability %', angle: -90, position: 'insideLeft', fill: '#4b5563', fontSize: 10 }}
+              label={{ value: 'Betrouwbaarheid %', angle: -90, position: 'insideLeft', fill: '#4b5563', fontSize: 10 }}
             />
-            <ZAxis type="number" dataKey="z" range={[100, 1000]} name="Speed Score" />
+            <ZAxis type="number" dataKey="z" range={[100, 1000]} name="Snelheid Score" />
             <Tooltip 
               cursor={{ strokeDasharray: '3 3' }}
               content={({ active, payload }) => {
@@ -68,9 +73,9 @@ export function SupplierScorecard({ data }: SupplierScorecardProps) {
                     <div className="bg-[#1a1a1a] border border-white/10 p-3 rounded-lg shadow-2xl">
                       <p className="text-white font-bold text-xs mb-2 uppercase tracking-wider">{data.name}</p>
                       <div className="space-y-1">
-                        <p className="text-[10px] text-gray-400">Price Index: <span className="text-white font-mono">{data.price}</span></p>
-                        <p className="text-[10px] text-gray-400">Reliability: <span className="text-emerald-400 font-mono">{data.reliability}%</span></p>
-                        <p className="text-[10px] text-gray-400">Lead Time: <span className="text-indigo-400 font-mono">{data.delivery} days</span></p>
+                        <p className="text-[10px] text-gray-400">Prijs Index: <span className="text-white font-mono">{data.price}</span></p>
+                        <p className="text-[10px] text-gray-400">Betrouwbaarheid: <span className="text-emerald-400 font-mono">{data.reliability}%</span></p>
+                        <p className="text-[10px] text-gray-400">Levertijd: <span className="text-indigo-400 font-mono">{data.delivery} dagen</span></p>
                       </div>
                     </div>
                   );
@@ -78,7 +83,7 @@ export function SupplierScorecard({ data }: SupplierScorecardProps) {
                 return null;
               }}
             />
-            <Scatter name="Suppliers" data={chartData} fill="#6366f1">
+            <Scatter name="Leveranciers" data={chartData} fill="#6366f1">
               {chartData.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
@@ -95,10 +100,10 @@ export function SupplierScorecard({ data }: SupplierScorecardProps) {
       </div>
       
       <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
-        <p className="text-[9px] text-gray-500 font-medium italic">Top-right quadrant indicates high-value strategic partners.</p>
+        <p className="text-[9px] text-gray-500 font-medium italic">Het kwadrant rechtsboven laat de beste strategische partners zien.</p>
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Target Zone</span>
+          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Doel Zone</span>
         </div>
       </div>
     </div>

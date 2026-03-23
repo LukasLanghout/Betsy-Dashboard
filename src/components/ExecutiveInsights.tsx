@@ -1,3 +1,7 @@
+// Dit component laat belangrijke meldingen zien bovenaan het dashboard.
+// We gebruiken verschillende kleuren voor verschillende soorten meldingen.
+// Rood is voor waarschuwingen, groen voor succes en blauw voor info.
+
 import React from 'react';
 import { AlertCircle, TrendingUp, Zap, ShieldCheck } from 'lucide-react';
 
@@ -9,6 +13,7 @@ interface Insight {
 }
 
 export function ExecutiveInsights({ insights }: { insights: Insight[] }) {
+  // We mappen door de lijst met inzichten die we van App.tsx krijgen
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
       {insights.map((insight, idx) => (

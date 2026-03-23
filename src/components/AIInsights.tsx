@@ -1,3 +1,8 @@
+// Dit is onze AI-assistent Betsy. 
+// Ze gebruikt de Groq API (Llama 3.3) om slimme inzichten te geven.
+// Ik heb een retry-loop toegevoegd voor als de API even niet meewerkt.
+// De prompt is nu zo ingesteld dat ze in het Nederlands antwoordt.
+
 import { useState, useEffect } from 'react';
 import { BrainCircuit, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { generateGroqCompletion, hasGroqConfig } from '../lib/groq';
@@ -18,7 +23,7 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
   useEffect(() => {
     async function generateInsights() {
       if (!hasGroqConfig) {
-        setError('Groq API Key is missing. Please add VITE_GROQ_API_KEY to your environment variables.');
+        setError('Groq API Key ontbreekt. Voeg VITE_GROQ_API_KEY toe aan je omgevingsvariabelen.');
         return;
       }
 
@@ -28,7 +33,7 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
       setError(null);
 
       try {
-        // Prepare a concise summary of the data for the prompt
+        // We maken een korte samenvatting van de data voor de AI
         const lowStockItems = inventory.filter(i => (i.stock_level || 0) < (i.reorder_point || 0));
         const topSuppliers = suppliers.sort((a, b) => (b.reliability_score || 0) - (a.reliability_score || 0)).slice(0, 3);
         const pendingOrders = orders.find(o => o.stage === 'Pending')?.count || 0;
@@ -37,69 +42,70 @@ export function AIInsights({ inventory, suppliers, orders }: AIInsightsProps) {
         let retries = 3;
         let delay = 1000;
 
+        // Beetje robuustheid: we proberen het een paar keer als het misgaat
         while (retries > 0) {
           try {
             response = await generateGroqCompletion([
               {
                 role: "system",
-                content: "You are an AI operations consultant. You provide data-driven, high-impact executive insights. Use bold text for key numbers and metrics. Be direct and actionable. Output must be in Dutch."
+                content: "Je bent een AI operations consultant. Je geeft data-gedreven, high-impact executive inzichten. Gebruik dikgedrukte tekst voor belangrijke getallen en statistieken. Wees direct en actiegericht. De output moet in het Nederlands zijn."
               },
               {
                 role: "user",
-                content: `You are an AI operations consultant.
+                content: `Je bent een AI operations consultant.
 
-Analyze this real-time supply chain snapshot and generate exactly 3 high-impact, executive-level insights.
+Analyseer deze real-time supply chain snapshot en genereer precies 3 high-impact, executive-level inzichten.
 
-Focus strictly on:
-- Stockout risks (urgency + affected products)
-- Financial impact (cost, revenue risk, savings opportunities)
-- Supplier performance (reliability vs efficiency trade-offs)
+Focus strikt op:
+- Voorraadtekort risico's (urgentie + getroffen producten)
+- Financiële impact (kosten, omzetrisico, besparingsmogelijkheden)
+- Leveranciersprestaties (betrouwbaarheid vs efficiëntie afwegingen)
 
 Data:
-- Low Stock: ${lowStockItems.length} items (${lowStockItems.map(i => i.name).join(', ')})
-- Pending Orders: ${pendingOrders}
-- Top Suppliers: ${topSuppliers.map(s => `${s.name} (${(s.reliability_score * 100).toFixed(0)}% reliability)`).join(', ')}
+- Lage Voorraad: ${lowStockItems.length} items (${lowStockItems.map(i => i.name).join(', ')})
+- Openstaande Bestellingen: ${pendingOrders}
+- Top Leveranciers: ${topSuppliers.map(s => `${s.name} (${(s.reliability_score * 100).toFixed(0)}% betrouwbaarheid)`).join(', ')}
 
-Instructions:
-- Each insight must be actionable (include a recommendation)
-- Be specific and data-driven (no generic statements)
-- Highlight risks, inefficiencies, or opportunities
-- Think like a McKinsey consultant
+Instructies:
+- Elk inzicht moet actiegericht zijn (inclusief een aanbeveling)
+- Wees specifiek en data-gedreven (geen algemene uitspraken)
+- Highlight risico's, inefficiënties of kansen
+- Denk als een McKinsey consultant
 
-Format rules:
-- Use icons: ⚠️ (risk), 💸 (financial), 🤖 (AI insight), 📦 (operations)
-- Use **bold** for all numbers and key terms.
-- Max 10 scentences.
-- No fluff, no explanations, only insights
-- Output in Dutch`
+Formaat regels:
+- Gebruik iconen: ⚠️ (risico), 💸 (financieel), 🤖 (AI inzicht), 📦 (operaties)
+- Gebruik **dikgedrukt** voor alle getallen en belangrijke termen.
+- Maximaal 10 zinnen.
+- Geen overbodige tekst, geen uitleg, alleen inzichten
+- Output in het Nederlands`
               }
             ]);
-            break; // Success, exit retry loop
+            break; // Gelukt!
           } catch (err: any) {
             retries--;
             const isAuthError = err.message?.toLowerCase().includes('api key') || err.message?.includes('401');
             
             if (retries === 0 || isAuthError) {
-              throw err; // Throw if out of retries or it's a hard auth error
+              throw err; // Geef het op
             }
             
-            console.warn(`Groq API error, retrying in ${delay}ms... (${retries} retries left)`, err);
+            console.warn(`Groq API fout, opnieuw proberen in ${delay}ms... (${retries} pogingen over)`, err);
             await new Promise(resolve => setTimeout(resolve, delay));
-            delay *= 2; // Exponential backoff
+            delay *= 2; // Wacht steeds iets langer
           }
         }
 
         const generatedText = response?.choices?.[0]?.message?.content || '';
         setInsights(generatedText.trim());
       } catch (err: any) {
-        console.error('Error generating insights:', err);
+        console.error('Fout bij genereren inzichten:', err);
         
-        let errorMessage = err.message || 'Failed to generate insights from Groq AI.';
+        let errorMessage = err.message || 'Kon geen inzichten genereren met Groq AI.';
         
         if (errorMessage.toLowerCase().includes('api key') || errorMessage.includes('401')) {
-          errorMessage = 'Your Groq API key is invalid or missing. Please check your VITE_GROQ_API_KEY environment variable.';
+          errorMessage = 'Je Groq API key is ongeldig of ontbreekt. Controleer je VITE_GROQ_API_KEY variabele.';
         } else if (errorMessage.includes('429')) {
-          errorMessage = 'Rate limit exceeded. Please try again in a moment.';
+          errorMessage = 'Rate limit bereikt. Probeer het over een momentje opnieuw.';
         }
         
         setError(errorMessage);
@@ -129,7 +135,7 @@ Format rules:
           <BrainCircuit className="hidden w-4 h-4 text-indigo-400" />
         </div>
         <h3 className="text-white font-semibold flex items-center gap-2">
-          Betsy AI Insights
+          Betsy AI Inzichten
           <Sparkles className="w-4 h-4 text-amber-400" />
         </h3>
       </div>

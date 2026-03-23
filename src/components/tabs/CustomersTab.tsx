@@ -1,3 +1,8 @@
+// Dit is het overzicht van alle klanten.
+// We kunnen op een klant klikken om hun profiel en bestelgeschiedenis te zien.
+// Ik heb ook een functie toegevoegd die kijkt of een bestelling tijdens een sale is gedaan.
+// Dat is interessant voor de marketing afdeling (of voor ons cijfer).
+
 import { User, Mail, ShoppingBag, CheckCircle2, XCircle, History, ArrowLeft, Calendar, Tag, Package as PackageIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
@@ -35,6 +40,7 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
     }
   }, [selectedCustomer]);
 
+  // Functie om de bestellingen van een specifieke klant op te halen
   const fetchCustomerOrders = async (customerId: string) => {
     setLoadingOrders(true);
     try {
@@ -47,8 +53,8 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
       if (error) throw error;
       setCustomerOrders(data || []);
     } catch (err) {
-      console.error('Error fetching customer orders:', err);
-      // Fallback mock data if table doesn't exist yet
+      console.error('Fout bij het ophalen van klantbestellingen:', err);
+      // Mock data als de tabel nog niet bestaat (voor de demo)
       setCustomerOrders([
         { id: '1', customer_id: customerId, product_name: 'Adidas Predator 42', amount: 1, order_date: '2024-01-15T10:00:00Z', price: 85.00 },
         { id: '2', customer_id: customerId, product_name: 'Nike Air Max', amount: 1, order_date: '2023-11-24T14:30:00Z', price: 120.00 },
@@ -59,35 +65,24 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
     }
   };
 
+  // Checken in welke sale periode de bestelling valt
   const getSalePeriod = (dateString: string): string | null => {
     const date = new Date(dateString);
     const month = date.getMonth(); // 0-11
     const day = date.getDate();
 
-    // Winter Sale: January
     if (month === 0) return 'Winter Sale ❄️';
-    
-    // Summer Sale: July/August
     if (month === 6 || month === 7) return 'Zomer Sale ☀️';
-    
-    // Singles Day: Nov 11
     if (month === 10 && day === 11) return 'Singles Day ⚡';
-    
-    // Black Friday / Cyber Monday: Late November
     if (month === 10 && day >= 20) return 'Black Friday / Cyber Monday ⚡';
-    
-    // Christmas: December
     if (month === 11) return 'Kerst Sale 🎄';
-    
-    // Mid-season: April/May
     if (month === 3 || month === 4) return 'Mid-season Sale 🧠';
-    
-    // Mid-season: October
     if (month === 9) return 'Mid-season Sale 🧠';
 
     return null;
   };
 
+  // Als er een klant is geselecteerd, laten we het profiel zien
   if (selectedCustomer) {
     return (
       <div className="space-y-6">
@@ -100,7 +95,7 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Customer Info Card */}
+          {/* Klant Info Kaart */}
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-[#141414] border border-white/10 rounded-2xl p-6">
               <div className="flex flex-col items-center text-center mb-6">
@@ -120,7 +115,7 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
                       : 'bg-gray-500/10 text-gray-500'
                   }`}>
                     {selectedCustomer.status === 'Active' ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
-                    {selectedCustomer.status}
+                    {selectedCustomer.status === 'Active' ? 'Actief' : 'Inactief'}
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
@@ -142,7 +137,7 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
             </div>
           </div>
 
-          {/* Order History */}
+          {/* Bestelgeschiedenis */}
           <div className="lg:col-span-2">
             <div className="bg-[#141414] border border-white/10 rounded-2xl overflow-hidden">
               <div className="p-6 border-b border-white/5">
@@ -221,6 +216,7 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
     );
   }
 
+  // De standaard lijst met alle klanten
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -229,14 +225,14 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
             <User className="text-indigo-500" size={24} />
           </div>
           <div>
-            <h3 className="text-white font-bold mb-1">Customer Management</h3>
-            <p className="text-sm text-gray-400">View and manage your customer relationships and order history.</p>
+            <h3 className="text-white font-bold mb-1">Klantenbeheer</h3>
+            <p className="text-sm text-gray-400">Bekijk en beheer je klantrelaties en bestelgeschiedenis.</p>
           </div>
         </div>
         <button 
           onClick={fetchData}
           className="ml-4 p-4 bg-white/5 border border-white/10 rounded-2xl text-gray-400 hover:text-white hover:bg-white/10 transition-all"
-          title="Refresh Data"
+          title="Gegevens Vernieuwen"
         >
           <History size={20} />
         </button>
@@ -247,11 +243,11 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="text-gray-500 border-b border-white/5">
-                <th className="px-6 py-4 font-medium">Customer</th>
+                <th className="px-6 py-4 font-medium">Klant</th>
                 <th className="px-6 py-4 font-medium">Email</th>
-                <th className="px-6 py-4 font-medium">Total Orders</th>
+                <th className="px-6 py-4 font-medium">Totaal Bestellingen</th>
                 <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium text-right">Action</th>
+                <th className="px-6 py-4 font-medium text-right">Actie</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -291,7 +287,7 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
                           : 'bg-gray-500/10 text-gray-500'
                       }`}>
                         {customer.status === 'Active' ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
-                        {customer.status}
+                        {customer.status === 'Active' ? 'Actief' : 'Inactief'}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -299,7 +295,7 @@ export function CustomersTab({ customers, fetchData }: CustomersTabProps) {
                         onClick={() => setSelectedCustomer(customer)}
                         className="text-indigo-400 hover:text-indigo-300 text-xs font-bold transition-colors"
                       >
-                        View Profile
+                        Bekijk Profiel
                       </button>
                     </td>
                   </tr>

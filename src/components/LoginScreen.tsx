@@ -1,3 +1,7 @@
+// Dit is het inlogscherm. 
+// Ik heb de standaard gegevens alvast ingevuld zodat we sneller kunnen testen.
+// Gemaakt door de studenten van Groep 4.
+
 import React from 'react';
 import { BrainCircuit } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -27,7 +31,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
           </div>
         </div>
         <h1 className="text-2xl font-bold text-white text-center mb-2">Betsy AI</h1>
-        <p className="text-gray-400 text-center mb-8 text-sm">Autonomous Procurement Agent for SportStores</p>
+        <p className="text-gray-400 text-center mb-8 text-sm">Autonome Inkoop Agent voor SportWinkels</p>
         
         <div className="space-y-4">
           <div>
@@ -39,7 +43,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Password</label>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Wachtwoord</label>
             <input 
               type="password" 
               defaultValue="••••••••"
@@ -50,7 +54,7 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
             onClick={onLogin}
             className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl transition-all transform active:scale-[0.98] mt-4"
           >
-            Login to Dashboard
+            Inloggen op Dashboard
           </button>
         </div>
         
@@ -59,13 +63,13 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
             <span className="text-gray-600">DB Status</span>
             <span className="text-emerald-500 flex items-center gap-1">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-              Live Connection
+              Live Verbinding
             </span>
           </div>
         </div>
 
         <p className="text-center text-gray-600 text-xs mt-4">
-          Prototype v1.0 • Powered by Groq AI
+          Prototype v1.0 • Aangedreven door Groq AI
         </p>
       </motion.div>
     </div>

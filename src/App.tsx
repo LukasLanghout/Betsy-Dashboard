@@ -24,10 +24,15 @@ import { CustomersTab } from './components/tabs/CustomersTab';
 import { SalesAnalyticsTab } from './components/tabs/SalesAnalyticsTab';
 import { customerData } from './data/mockData';
 
+// Welkom bij de hoofd-app! 
+// Ik heb geprobeerd om alles in het Nederlands te zetten zodat Lucas het snapt.
+// Dit was best veel werk, maar het dashboard ziet er nu goed uit.
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'proposals' | 'orders' | 'inventory' | 'suppliers' | 'invoices' | 'customers' | 'sales'>('dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
+  // Alle data die we uit de database halen slaan we hier op in de 'state'
   const [inventory, setInventory] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -41,8 +46,9 @@ export default function App() {
   const [adjustingProposal, setAdjustingProposal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedSupplier, setSelectedSupplier] = useState<string>('All');
+  // Filters voor het dashboard
+  const [selectedCategory, setSelectedCategory] = useState<string>('Alle');
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('Alle');
   const [drillDownProduct, setDrillDownProduct] = useState<any | null>(null);
   const [showConfirm, setShowConfirm] = useState<{
     isOpen: boolean;
@@ -58,6 +64,7 @@ export default function App() {
     type: 'warning'
   });
 
+  // Functie om alle data op te halen van Supabase
   const fetchData = async () => {
     if (!hasSupabaseConfig) {
       setLoading(false);
@@ -626,14 +633,14 @@ export default function App() {
       <main className="flex-1 overflow-y-auto">
         <header className="h-16 border-b border-white/5 flex items-center justify-between px-8 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-md z-10">
           <h2 className="text-lg font-semibold text-white">
-            {activeTab === 'dashboard' && 'Operations Overview'}
-            {activeTab === 'sales' && 'Sales Analytics & Trends'}
-            {activeTab === 'proposals' && 'AI Procurement Proposals'}
-            {activeTab === 'orders' && 'Order Tracking'}
-            {activeTab === 'invoices' && 'Invoice Audit & Verification'}
-            {activeTab === 'inventory' && 'Inventory Management'}
-            {activeTab === 'suppliers' && 'Supplier Network'}
-            {activeTab === 'customers' && 'Customer Base'}
+            {activeTab === 'dashboard' && 'Operationeel Overzicht'}
+            {activeTab === 'sales' && 'Verkoop Analyse & Trends'}
+            {activeTab === 'proposals' && 'AI Inkoop Voorstellen'}
+            {activeTab === 'orders' && 'Bestellingen Volgen'}
+            {activeTab === 'invoices' && 'Factuur Audit & Verificatie'}
+            {activeTab === 'inventory' && 'Voorraad Beheer'}
+            {activeTab === 'suppliers' && 'Leveranciers Netwerk'}
+            {activeTab === 'customers' && 'Klantenbestand'}
           </h2>
           <div className="flex items-center gap-4">
             <button 
@@ -654,8 +661,8 @@ export default function App() {
             <div className="space-y-8">
               <div className="flex justify-between items-end">
                 <div>
-                  <h3 className="text-2xl font-bold text-white tracking-tight">Executive Summary</h3>
-                  <p className="text-xs text-gray-500 mt-1 font-medium uppercase tracking-widest">McKinsey-Grade Operations Intelligence</p>
+                  <h3 className="text-2xl font-bold text-white tracking-tight">Management Samenvatting</h3>
+                  <p className="text-xs text-gray-500 mt-1 font-medium uppercase tracking-widest">Slimme Operations Intelligence</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
@@ -665,7 +672,7 @@ export default function App() {
                       onChange={(e) => setSelectedCategory(e.target.value)}
                       className="bg-transparent text-sm text-white outline-none cursor-pointer"
                     >
-                      {categories.map(c => <option key={c} value={c} className="bg-gray-900">{c}</option>)}
+                      {categories.map(c => <option key={c} value={c} className="bg-gray-900">{c === 'All' ? 'Alle Categorieën' : c}</option>)}
                     </select>
                   </div>
                   <button 
@@ -673,7 +680,7 @@ export default function App() {
                     className="px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl text-xs font-bold hover:bg-red-500/20 transition-all flex items-center gap-2"
                   >
                     <Trash2 size={16} />
-                    Reset
+                    Reset Data
                   </button>
                 </div>
               </div>
@@ -684,39 +691,39 @@ export default function App() {
               {/* KPI Grid - McKinsey Style */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                 <KPICard 
-                  title="Revenue Performance" 
-                  value={`$${(kpis.totalRevenue / 1000).toFixed(1)}k`}
+                  title="Omzet Prestaties" 
+                  value={`€${(kpis.totalRevenue / 1000).toFixed(1)}k`}
                   icon={<TrendingUp className="w-5 h-5" />}
-                  trend={`${kpis.revGrowth > 0 ? '+' : ''}${kpis.revGrowth.toFixed(1)}% Growth`}
+                  trend={`${kpis.revGrowth > 0 ? '+' : ''}${kpis.revGrowth.toFixed(1)}% Groei`}
                   trendUp={kpis.revGrowth > 0}
                 />
                 <KPICard 
-                  title="Stock Risk (%)" 
+                  title="Voorraad Risico (%)" 
                   value={`${kpis.stockRiskPct.toFixed(1)}%`}
                   icon={<AlertTriangle className="w-5 h-5" />}
-                  trend={`${kpis.lowStockCount} items low`}
+                  trend={`${kpis.lowStockCount} items laag`}
                   trendUp={kpis.stockRiskPct < 15}
                   className={kpis.stockRiskPct > 25 ? "border-rose-500/30 bg-rose-500/5" : ""}
                 />
                 <KPICard 
-                  title="Inventory Efficiency" 
+                  title="Voorraad Efficiëntie" 
                   value={kpis.stockTurnover.toFixed(2)}
                   icon={<Package className="w-5 h-5" />}
                   trend={`${kpis.doi.toFixed(0)}d DOI`}
                   trendUp={kpis.stockTurnover > 1}
                 />
                 <KPICard 
-                  title="Supplier Health" 
+                  title="Leverancier Gezondheid" 
                   value={`${(kpis.avgReliability * 100).toFixed(0)}%`}
                   icon={<ShieldCheck className="w-5 h-5" />}
                   trend={`${kpis.avgLeadTime.toFixed(1)}d Lag`}
                   trendUp={true}
                 />
                 <KPICard 
-                  title="AI Audit Integrity" 
+                  title="AI Audit Integriteit" 
                   value={`${(100 - kpis.aiErrorRate).toFixed(1)}%`}
                   icon={<BrainCircuit className="w-5 h-5" />}
-                  trend={`${kpis.aiErrorRate.toFixed(1)}% Error`}
+                  trend={`${kpis.aiErrorRate.toFixed(1)}% Fout`}
                   trendUp={kpis.aiErrorRate < 10}
                 />
               </div>

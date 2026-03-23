@@ -1,3 +1,7 @@
+// Dit component laat de status van de bestellingen zien.
+// We hebben alleen 'In Afwachting' (Pending) en 'Geleverd' (Delivered).
+// De grafiek laat zien hoeveel bestellingen er in elke fase zitten.
+
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface OrderPipelineProps {
@@ -5,12 +9,16 @@ interface OrderPipelineProps {
 }
 
 export function OrderPipeline({ data }: OrderPipelineProps) {
-  // Ensure we have the right stages even if count is 0
-  const stages = ['Pending', 'Delivered'];
+  // We zorgen dat we de juiste fases hebben, ook als er 0 bestellingen zijn
+  const stages = [
+    { key: 'Pending', label: 'In Afwachting' },
+    { key: 'Delivered', label: 'Geleverd' }
+  ];
+  
   const chartData = stages.map(stage => {
-    const found = data.find(d => d.stage.toLowerCase() === stage.toLowerCase());
+    const found = data.find(d => d.stage.toLowerCase() === stage.key.toLowerCase());
     return {
-      stage,
+      stage: stage.label,
       count: found ? found.count : 0
     };
   });
@@ -20,8 +28,8 @@ export function OrderPipeline({ data }: OrderPipelineProps) {
   return (
     <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 h-[450px] flex flex-col group transition-all hover:border-white/10">
       <div className="mb-8">
-        <h3 className="text-white font-bold text-lg tracking-tight">Fulfillment Pipeline</h3>
-        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Operational Throughput & Bottlenecks</p>
+        <h3 className="text-white font-bold text-lg tracking-tight">Bestellingen Pipeline</h3>
+        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Operationele Doorloop & Knelpunten</p>
       </div>
       
       <div className="flex-1 w-full min-h-0 min-w-0">

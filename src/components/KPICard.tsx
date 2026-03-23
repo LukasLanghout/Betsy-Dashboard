@@ -1,3 +1,7 @@
+// Dit is een kaartje voor de KPI's (Key Performance Indicators).
+// We laten hier een titel, een waarde en een icoontje zien.
+// Ook kunnen we een trend laten zien (omhoog of omlaag).
+
 import { ReactNode } from 'react';
 import { cn } from '../utils/cn';
 
@@ -11,12 +15,14 @@ interface KPICardProps {
 }
 
 export function KPICard({ title, value, icon, trend, trendUp, className }: KPICardProps) {
+  // De layout van het kaartje
   return (
     <div className={cn("bg-[#141414] border border-white/5 rounded-2xl p-8 flex flex-col group transition-all hover:border-white/10", className)}>
       <div className="flex items-center justify-between mb-6">
         <div className="p-2 bg-white/5 rounded-lg text-gray-400 group-hover:text-white transition-colors">
           {icon}
         </div>
+        {/* Hier checken we of er een trend is om te laten zien */}
         {trend && (
           <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest", 
             trendUp ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500")}>
