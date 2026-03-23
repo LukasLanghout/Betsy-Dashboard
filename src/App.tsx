@@ -88,7 +88,7 @@ export default function App() {
         supabase.from('invoices').select('*').order('id', { ascending: false }),
         supabase.from('supplier_prices').select('*'),
         supabase.from('customers').select('*').order('name', { ascending: true }),
-        supabase.from('sales_data').select('*').order('date', { ascending: true })
+        supabase.from('sales_data').select('*').order('date', { ascending: true }).limit(5000)
       ]);
 
       const formattedInventory = (invData || []).map((item: any) => {

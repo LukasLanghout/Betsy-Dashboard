@@ -21,33 +21,49 @@ import {
 import { TrendingUp, TrendingDown, Minus, BarChart3, Calendar, Table as TableIcon } from 'lucide-react';
 
 export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
-  const [selectedMonth, setSelectedMonth] = useState<string>(salesData.length > 0 ? salesData[salesData.length - 1].date : '');
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    if (salesData.length === 0) return '';
+    const lastDate = salesData[salesData.length - 1].date;
+    return lastDate.substring(0, 7) + '-01'; // Default to the first of the last month found
+  });
 
   // We halen alle unieke productnamen op
   const products = useMemo(() => Array.from(new Set(salesData.map(d => d.product_name))), [salesData]);
   
-  // We zetten de data om in een formaat dat Recharts begrijpt
+  // We zetten de data om in een formaat dat Recharts begrijpt (gegroepeerd per maand voor de grafiek)
   const chartData = useMemo(() => {
-    const dates = Array.from(new Set(salesData.map(d => d.date))).sort();
-    return dates.map(date => {
-      const entry: any = { date };
-      products.forEach(product => {
-        const sale = salesData.find(d => d.date === date && d.product_name === product);
-        entry[product] = sale ? sale.sales : 0;
-      });
-      return entry;
+    const monthlyData: { [key: string]: any } = {};
+    
+    salesData.forEach(d => {
+      const monthKey = d.date.substring(0, 7) + '-01';
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { date: monthKey };
+        products.forEach(p => monthlyData[monthKey][p] = 0);
+      }
+      monthlyData[monthKey][d.product_name] += d.sales;
     });
+
+    return Object.values(monthlyData).sort((a, b) => a.date.localeCompare(b.date));
   }, [salesData, products]);
 
-  // We berekenen wat statistieken per product
+  // We berekenen wat statistieken per product (gebaseerd op maandtotalen)
   const stats = useMemo(() => {
     return products.map(product => {
-      const productSales = salesData.filter(d => d.product_name === product).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      if (productSales.length < 2) return null;
+      const monthlyTotals: { [key: string]: number } = {};
+      salesData.filter(d => d.product_name === product).forEach(d => {
+        const monthKey = d.date.substring(0, 7);
+        monthlyTotals[monthKey] = (monthlyTotals[monthKey] || 0) + d.sales;
+      });
+
+      const sortedMonths = Object.keys(monthlyTotals).sort();
+      if (sortedMonths.length < 2) return null;
       
-      const latest = productSales[productSales.length - 1].sales;
-      const previous = productSales[productSales.length - 2].sales;
-      const total = productSales.reduce((sum, d) => sum + d.sales, 0);
+      const latestMonth = sortedMonths[sortedMonths.length - 1];
+      const prevMonth = sortedMonths[sortedMonths.length - 2];
+      
+      const latest = monthlyTotals[latestMonth];
+      const previous = monthlyTotals[prevMonth];
+      const total = Object.values(monthlyTotals).reduce((sum, val) => sum + val, 0);
       const growth = ((latest - previous) / previous) * 100;
       
       return {
@@ -60,41 +76,23 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     }).filter(Boolean);
   }, [salesData, products]);
 
-  // Functie om maandelijkse sales te verdelen over dagen
+  // We tonen de ECHTE dagelijkse data uit de database voor de geselecteerde maand
   const dailyBreakdown = useMemo(() => {
     if (!selectedMonth) return [];
     
-    const monthData = salesData.filter(d => d.date === selectedMonth);
-    const date = new Date(selectedMonth);
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthPrefix = selectedMonth.substring(0, 7);
+    const filtered = salesData.filter(d => d.date.startsWith(monthPrefix));
     
-    const days = [];
-    for (let i = 1; i <= daysInMonth; i++) {
-      const dayEntry: any = { 
-        day: i,
-        date: `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`
-      };
-      
-      monthData.forEach(prod => {
-        // We verdelen het totaal over de dagen met een beetje variatie
-        // We gebruiken een simpele sinus om het er "echt" uit te laten zien
-        const base = prod.sales / daysInMonth;
-        const variation = Math.sin(i * 0.5) * (base * 0.5);
-        let dailyVal = Math.max(0, Math.round(base + variation));
-        
-        // Op de laatste dag corrigeren we voor afrondingsverschillen zodat het totaal klopt
-        if (i === daysInMonth) {
-          const currentTotal = days.reduce((sum, d) => sum + (d[prod.product_name] || 0), 0);
-          dailyVal = prod.sales - currentTotal;
-        }
-        
-        dayEntry[prod.product_name] = dailyVal;
-      });
-      days.push(dayEntry);
-    }
-    return days;
+    // We groeperen per dag (voor het geval er meerdere entries per dag zijn, al zou dat niet moeten)
+    const days: { [key: string]: any } = {};
+    filtered.forEach(d => {
+      if (!days[d.date]) {
+        days[d.date] = { date: d.date };
+      }
+      days[d.date][d.product_name] = (days[d.date][d.product_name] || 0) + d.sales;
+    });
+
+    return Object.values(days).sort((a, b) => a.date.localeCompare(b.date));
   }, [selectedMonth, salesData]);
 
   const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
@@ -201,7 +199,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="bg-transparent text-sm text-white outline-none cursor-pointer"
               >
-                {Array.from(new Set(salesData.map(d => d.date))).sort().reverse().map(date => (
+                {Array.from(new Set(salesData.map(d => d.date.substring(0, 7) + '-01'))).sort().reverse().map(date => (
                   <option key={date} value={date} className="bg-[#141414]">
                     {new Date(date).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })}
                   </option>
