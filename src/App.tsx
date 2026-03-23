@@ -128,9 +128,13 @@ export default function App() {
         const productSales = (slsData || []).filter((s: any) => s.product_name === product.name);
         const totalSales = productSales.reduce((sum: number, s: any) => sum + s.sales, 0);
         
+        // We gaan ervan uit dat 'sales' in de database omzet (revenue) is.
+        // Om naar eenheden (units) te gaan voor de voorraadvoorspelling, delen we door de basisprijs.
+        const totalUnits = product.base_price > 0 ? totalSales / product.base_price : totalSales;
+        
         // We nemen het gemiddelde over de beschikbare data (max 4 weken)
         // Als er geen data is, gebruiken we een default van 10 per week
-        const avgWeeklySales = productSales.length > 0 ? (totalSales / Math.max(1, productSales.length / 7)) : 10;
+        const avgWeeklySales = productSales.length > 0 ? Number((totalUnits / Math.max(1, productSales.length / 7)).toFixed(1)) : 10;
 
         return {
           id: invItem?.id,
@@ -518,8 +522,8 @@ export default function App() {
   const kpis = useMemo(() => {
     // 1. Revenue & Sales (Combined with Growth)
     const totalRevenue = salesData.reduce((sum, sale) => {
-      const product = inventory.find(p => p.name === sale.product_name);
-      return sum + (sale.sales * (product?.base_price || 50));
+      // We gaan ervan uit dat 'sales' in de database al de omzet (revenue) is.
+      return sum + sale.sales;
     }, 0);
 
     const sortedSales = [...salesData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -531,9 +535,23 @@ export default function App() {
 
     // 2. Inventory Optimization (Stock Turnover + DOI)
     const avgStock = inventory.reduce((sum, item) => sum + (item.stock_level || 0), 0) / (inventory.length || 1);
-    const totalSalesVol = salesData.reduce((sum, s) => sum + s.sales, 0);
-    const stockTurnover = avgStock > 0 ? (totalSalesVol / 60) / avgStock : 0;
-    const doi = (totalSalesVol / 60) > 0 ? avgStock / (totalSalesVol / 60) : 0;
+    
+    // Bereken totaal aantal verkochte eenheden (units)
+    const totalSalesVol = salesData.reduce((sum, s) => {
+      const product = inventory.find(p => p.name === s.product_name);
+      const units = product?.base_price > 0 ? s.sales / product.base_price : s.sales;
+      return sum + units;
+    }, 0);
+
+    // We schatten het aantal dagen in de dataset (bijv. 31 voor januari)
+    const daysInPeriod = Math.max(1, salesData.length / (inventory.length || 1));
+    
+    // Omloopsnelheid (Turnover) = Totaal verkochte eenheden / Gemiddelde voorraad
+    const stockTurnover = (avgStock * inventory.length) > 0 ? (totalSalesVol / (avgStock * inventory.length)) : 0;
+    
+    // Days of Inventory (DOI) = Huidige voorraad / Gemiddelde verkoop per dag
+    const avgDailySales = totalSalesVol / daysInPeriod;
+    const doi = avgDailySales > 0 ? (avgStock * inventory.length) / avgDailySales : 0;
 
     const lowStockCount = inventory.filter(item => (item.stock_level || 0) < (item.reorder_point || 0)).length;
     const stockRiskPct = (lowStockCount / (inventory.length || 1)) * 100;
