@@ -47,8 +47,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   // Filters voor het dashboard
-  const [selectedCategory, setSelectedCategory] = useState<string>('Alle');
-  const [selectedSupplier, setSelectedSupplier] = useState<string>('Alle');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('All');
   const [drillDownProduct, setDrillDownProduct] = useState<any | null>(null);
   const [showConfirm, setShowConfirm] = useState<{
     isOpen: boolean;
