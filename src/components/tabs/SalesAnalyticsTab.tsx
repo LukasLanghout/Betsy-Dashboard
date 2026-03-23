@@ -97,6 +97,15 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
 
   const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
 
+  if (salesData.length === 0) {
+    return (
+      <div className="bg-[#141414] border border-white/5 rounded-2xl p-12 flex flex-col items-center justify-center text-gray-400">
+        <p className="text-lg font-bold text-white mb-2">Geen verkoopgegevens gevonden.</p>
+        <p className="text-sm">Voer het SQL-script uit om de 'sales_data' tabel te vullen!</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Statistieken kaartjes bovenaan */}
@@ -151,7 +160,8 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 fontSize={10} 
                 tickFormatter={(str) => {
                   const date = new Date(str);
-                  return date.getMonth() === 0 ? date.getFullYear().toString() : '';
+                  const months = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
+                  return `${months[date.getMonth()]} ${date.getFullYear()}`;
                 }}
                 axisLine={false}
                 tickLine={false}

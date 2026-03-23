@@ -17,6 +17,15 @@ export function StockOutPredictor({ data }: StockOutPredictorProps) {
     isLow: item.stock_level < item.reorder_point
   })).sort((a, b) => a.weeksUntilStockOut - b.weeksUntilStockOut);
 
+  if (chartData.length === 0) {
+    return (
+      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 h-[400px] flex flex-col items-center justify-center text-gray-400">
+        <p>Geen voorraadgegevens gevonden om te voorspellen.</p>
+        <p className="text-xs mt-2">Check of de 'inventory' tabel gevuld is!</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 h-[400px] flex flex-col">
       <h3 className="text-white font-semibold mb-6">Voorraad-op Voorspeller (Weken)</h3>

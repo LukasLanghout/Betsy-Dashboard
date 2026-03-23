@@ -93,11 +93,21 @@ export default function App() {
 
       const formattedInventory = (invData || []).map((item: any) => {
         const product = Array.isArray(item.products) ? item.products[0] : item.products;
+        
+        // Bereken gemiddelde wekelijkse verkoop op basis van sales_data
+        const productSales = (slsData || []).filter((s: any) => s.product_name === product?.name);
+        const totalSales = productSales.reduce((sum: number, s: any) => sum + s.sales, 0);
+        
+        // We nemen het gemiddelde over de beschikbare data (max 4 weken)
+        // Als er geen data is, gebruiken we een default van 10 per week
+        const avgWeeklySales = productSales.length > 0 ? (totalSales / Math.max(1, productSales.length / 7)) : 10;
+
         return {
           ...item,
-          name: product?.name || 'Unknown Product',
-          category: product?.category || 'Uncategorized',
+          name: product?.name || 'Onbekend Product',
+          category: product?.category || 'Geen Categorie',
           base_price: product?.base_price || 0,
+          avg_weekly_sales: avgWeeklySales
         };
       });
       setInventory(formattedInventory);
