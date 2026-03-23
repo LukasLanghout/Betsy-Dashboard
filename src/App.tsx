@@ -67,6 +67,7 @@ export default function App() {
   // Functie om alle data op te halen van Supabase
   const fetchData = async () => {
     if (!hasSupabaseConfig) {
+      console.warn('WAARSCHUWING: Supabase configuratie ontbreekt! Check je .env bestand of de instellingen in AI Studio.');
       setLoading(false);
       return;
     }
@@ -75,6 +76,7 @@ export default function App() {
     try {
       const [
         { data: invData },
+        { data: prdData },
         { data: supData },
         { data: ordData },
         { data: invcData },
@@ -83,6 +85,7 @@ export default function App() {
         { data: slsData }
       ] = await Promise.all([
         supabase.from('inventory').select('*, products(*)'),
+        supabase.from('products').select('*'),
         supabase.from('suppliers').select('*'),
         supabase.from('orders').select('*, products(*), suppliers(*)').order('id', { ascending: false }),
         supabase.from('invoices').select('*').order('id', { ascending: false }),
@@ -91,11 +94,38 @@ export default function App() {
         supabase.from('sales_data').select('*').order('date', { ascending: true }).limit(5000)
       ]);
 
-      const formattedInventory = (invData || []).map((item: any) => {
-        const product = Array.isArray(item.products) ? item.products[0] : item.products;
+      console.log('Betsy AI Data Fetch Summary:', { 
+        inventory: invData?.length, 
+        products: prdData?.length,
+        suppliers: supData?.length, 
+        orders: ordData?.length, 
+        invoices: invcData?.length, 
+        sales: slsData?.length 
+      });
+
+      if (prdData && prdData.length > 0) {
+        console.log('Sample Product Item:', prdData[0]);
+      } else {
+        console.warn('WAARSCHUWING: De "products" tabel is leeg. Zonder producten werkt het dashboard niet!');
+      }
+
+      if (invData && invData.length > 0) {
+        console.log('Sample Inventory Item:', invData[0]);
+      } else {
+        console.warn('WAARSCHUWING: De "inventory" tabel is leeg. De voorraad-voorspeller heeft deze data nodig!');
+      }
+
+      if (slsData && slsData.length > 0) {
+        console.log('Sample Sales Item:', slsData[0]);
+      } else {
+        console.warn('WAARSCHUWING: De "sales_data" tabel is leeg. De verkoopgrafieken zullen niets tonen.');
+      }
+
+      const formattedInventory = (prdData || []).map((product: any) => {
+        const invItem = (invData || []).find((item: any) => item.product_id === product.id);
         
         // Bereken gemiddelde wekelijkse verkoop op basis van sales_data
-        const productSales = (slsData || []).filter((s: any) => s.product_name === product?.name);
+        const productSales = (slsData || []).filter((s: any) => s.product_name === product.name);
         const totalSales = productSales.reduce((sum: number, s: any) => sum + s.sales, 0);
         
         // We nemen het gemiddelde over de beschikbare data (max 4 weken)
@@ -103,10 +133,13 @@ export default function App() {
         const avgWeeklySales = productSales.length > 0 ? (totalSales / Math.max(1, productSales.length / 7)) : 10;
 
         return {
-          ...item,
-          name: product?.name || 'Onbekend Product',
-          category: product?.category || 'Geen Categorie',
-          base_price: product?.base_price || 0,
+          id: invItem?.id,
+          product_id: product.id,
+          name: product.name || 'Onbekend Product',
+          category: product.category || 'Geen Categorie',
+          stock_level: invItem?.stock_level || 0,
+          reorder_point: invItem?.reorder_point || 10,
+          base_price: product.base_price || 0,
           avg_weekly_sales: avgWeeklySales
         };
       });
@@ -833,6 +866,17 @@ export default function App() {
         onConfirm={showConfirm.onConfirm}
         onCancel={() => setShowConfirm(prev => ({ ...prev, isOpen: false }))}
       />
+      {/* Supabase Status Indicator */}
+      {!hasSupabaseConfig && (
+        <div className="fixed bottom-4 right-4 bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-2 rounded-lg text-xs z-50 animate-pulse">
+          ⚠️ Supabase configuratie ontbreekt! Check je instellingen.
+        </div>
+      )}
+      {hasSupabaseConfig && inventory.length === 0 && !loading && (
+        <div className="fixed bottom-4 right-4 bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 px-4 py-2 rounded-lg text-xs z-50">
+          ⚠️ Geen data gevonden in Supabase.
+        </div>
+      )}
     </div>
   );
 }

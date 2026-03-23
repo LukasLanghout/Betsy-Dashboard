@@ -21,11 +21,15 @@ import {
 import { TrendingUp, TrendingDown, Minus, BarChart3, Calendar, Table as TableIcon } from 'lucide-react';
 
 export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    if (salesData.length === 0) return '';
-    const lastDate = salesData[salesData.length - 1].date;
-    return lastDate.substring(0, 7) + '-01'; // Default to the first of the last month found
-  });
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+
+  // We zetten de default maand zodra de data binnen is
+  React.useEffect(() => {
+    if (salesData.length > 0 && !selectedMonth) {
+      const lastDate = salesData[salesData.length - 1].date;
+      setSelectedMonth(lastDate.substring(0, 7) + '-01');
+    }
+  }, [salesData, selectedMonth]);
 
   // We halen alle unieke productnamen op
   const products = useMemo(() => Array.from(new Set(salesData.map(d => d.product_name))), [salesData]);
@@ -35,6 +39,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     const monthlyData: { [key: string]: any } = {};
     
     salesData.forEach(d => {
+      if (!d.date || typeof d.date !== 'string') return;
       const monthKey = d.date.substring(0, 7) + '-01';
       if (!monthlyData[monthKey]) {
         monthlyData[monthKey] = { date: monthKey };
@@ -81,11 +86,12 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     if (!selectedMonth) return [];
     
     const monthPrefix = selectedMonth.substring(0, 7);
-    const filtered = salesData.filter(d => d.date.startsWith(monthPrefix));
+    const filtered = salesData.filter(d => d.date && typeof d.date === 'string' && d.date.startsWith(monthPrefix));
     
     // We groeperen per dag (voor het geval er meerdere entries per dag zijn, al zou dat niet moeten)
     const days: { [key: string]: any } = {};
     filtered.forEach(d => {
+      if (!d.date) return;
       if (!days[d.date]) {
         days[d.date] = { date: d.date };
       }
