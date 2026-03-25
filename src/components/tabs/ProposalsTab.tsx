@@ -3,11 +3,23 @@
 // We kunnen het voorstel accepteren of handmatig een andere leverancier kiezen.
 // Dit is echt het hart van de "inkoop agent" functionaliteit.
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BrainCircuit, CheckCircle2 } from 'lucide-react';
+import { BrainCircuit, CheckCircle2, ChevronDown, Package, Truck, Euro, Star } from 'lucide-react';
 
 export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAdjustingProposal }: any) {
+  const [customQuantities, setCustomQuantities] = useState<Record<string, number>>({});
+
+  const handleApprove = (prop: any, supplier?: any) => {
+    const qty = customQuantities[prop.product_id] || prop.recommended_order;
+    approveOrder({ ...prop, recommended_order: qty }, supplier);
+  };
+
+  const updateQuantity = (productId: string, val: string) => {
+    const num = parseInt(val) || 0;
+    setCustomQuantities(prev => ({ ...prev, [productId]: num }));
+  };
+
   return (
     <div className="space-y-6">
       {proposals.length === 0 ? (
@@ -51,15 +63,23 @@ export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAd
                       <p className="text-xl font-mono text-red-400">{prop.predicted_stockout_days} dagen</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Aanbevolen</p>
-                      <p className="text-xl font-mono text-emerald-400">+{prop.recommended_order}</p>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Aantal Bestellen</p>
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="number" 
+                          value={customQuantities[prop.product_id] !== undefined ? customQuantities[prop.product_id] : prop.recommended_order}
+                          onChange={(e) => updateQuantity(prop.product_id, e.target.value)}
+                          className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xl font-mono text-emerald-400 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                        />
+                        <span className="text-xs text-gray-600 font-bold uppercase">Units</span>
+                      </div>
                     </div>
                   </div>
 
                   <div className="bg-black/40 rounded-xl p-4 border border-white/5">
                     <div className="flex items-center gap-2 mb-2">
                       <BrainCircuit size={14} className="text-emerald-500" />
-                      <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Agent Redenering</span>
+                      <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Betsy's Redenering</span>
                     </div>
                     <p className="text-sm text-gray-400 italic leading-relaxed">
                       "{prop.reasoning}"
@@ -100,7 +120,7 @@ export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAd
                       </div>
                     </div>
                     <button 
-                      onClick={() => approveOrder(prop)}
+                      onClick={() => handleApprove(prop)}
                       className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 mt-4"
                     >
                       Inkooporder Goedkeuren
@@ -163,7 +183,7 @@ export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAd
                           </div>
                         </div>
                         <button 
-                          onClick={() => approveOrder(prop, prop.suggested_supplier)}
+                          onClick={() => handleApprove(prop, prop.suggested_supplier)}
                           className="w-full py-2 bg-emerald-500 text-black text-xs font-bold rounded-lg hover:bg-emerald-400 transition-colors"
                         >
                           Selecteer AI Keuze
@@ -200,7 +220,7 @@ export function ProposalsTab({ proposals, approveOrder, adjustingProposal, setAd
                             </div>
                           </div>
                           <button 
-                            onClick={() => approveOrder(prop, alt)}
+                            onClick={() => handleApprove(prop, alt)}
                             className="w-full py-2 bg-white/10 text-white text-xs font-bold rounded-lg hover:bg-white/20 transition-colors"
                           >
                             Selecteer {alt.name}

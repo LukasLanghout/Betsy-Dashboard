@@ -22,6 +22,7 @@ import { TrendingUp, TrendingDown, Minus, BarChart3, Calendar, Table as TableIco
 
 export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'monthly' | 'daily'>('daily');
 
   // We zetten de default maand zodra de data binnen is
   React.useEffect(() => {
@@ -88,20 +89,23 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     const monthPrefix = selectedMonth.substring(0, 7);
     const filtered = salesData.filter(d => d.date && typeof d.date === 'string' && d.date.startsWith(monthPrefix));
     
-    // We groeperen per dag (voor het geval er meerdere entries per dag zijn, al zou dat niet moeten)
+    // We groeperen per dag
     const days: { [key: string]: any } = {};
     filtered.forEach(d => {
       if (!d.date) return;
       if (!days[d.date]) {
         days[d.date] = { date: d.date };
+        products.forEach(p => days[d.date][p] = 0);
       }
       days[d.date][d.product_name] = (days[d.date][d.product_name] || 0) + d.sales;
     });
 
     return Object.values(days).sort((a, b) => a.date.localeCompare(b.date));
-  }, [selectedMonth, salesData]);
+  }, [selectedMonth, salesData, products]);
 
-  const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
+  const currentChartData = viewMode === 'monthly' ? chartData : dailyBreakdown;
+
+  const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444'];
 
   if (salesData.length === 0) {
     return (
@@ -139,18 +143,25 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
       <div className="bg-[#141414] border border-white/5 rounded-2xl p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h3 className="text-xl font-bold text-white">Verkoopgeschiedenis & Trends</h3>
-            <p className="text-xs text-gray-500 mt-1">Maandelijkse prestaties over 5 jaar</p>
+            <h3 className="text-xl font-bold text-white">
+              {viewMode === 'monthly' ? 'Verkoopgeschiedenis & Trends' : `Dagelijkse Trends - ${new Date(selectedMonth).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })}`}
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {viewMode === 'monthly' ? 'Maandelijkse prestaties over de tijd' : 'Gedetailleerd verloop van de huidige maand'}
+            </p>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg">
-            <BarChart3 size={16} className="text-gray-400" />
-            <span className="text-xs text-gray-300">Maandoverzicht</span>
-          </div>
+          <button 
+            onClick={() => setViewMode(viewMode === 'monthly' ? 'daily' : 'monthly')}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+          >
+            <BarChart3 size={16} className={viewMode === 'monthly' ? 'text-emerald-500' : 'text-gray-400'} />
+            <span className="text-xs text-gray-300">{viewMode === 'monthly' ? 'Maandoverzicht' : 'Wissel naar Maand'}</span>
+          </button>
         </div>
 
         <div className="h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <AreaChart data={currentChartData}>
               <defs>
                 {products.map((product, idx) => (
                   <linearGradient key={`grad-${idx}`} id={`color-${idx}`} x1="0" y1="0" x2="0" y2="1">
@@ -166,6 +177,9 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 fontSize={10} 
                 tickFormatter={(str) => {
                   const date = new Date(str);
+                  if (viewMode === 'daily') {
+                    return date.toLocaleDateString('nl-NL', { day: '2-digit', month: 'short' });
+                  }
                   const months = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
                   return `${months[date.getMonth()]} ${date.getFullYear()}`;
                 }}
@@ -182,6 +196,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
               <Tooltip 
                 contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '12px', fontSize: '12px' }}
                 itemStyle={{ padding: '2px 0' }}
+                labelFormatter={(label) => new Date(label).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}
               />
               <Legend verticalAlign="top" height={36} iconType="circle" />
               {products.map((product, idx) => (
@@ -193,6 +208,8 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   fillOpacity={1} 
                   fill={`url(#color-${idx})`} 
                   strokeWidth={2}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                  dot={currentChartData.length === 1}
                 />
               ))}
             </AreaChart>

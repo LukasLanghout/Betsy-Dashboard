@@ -306,17 +306,17 @@ export default function App() {
           }
 
           const ai = new GoogleGenAI({ apiKey });
-          const prompt = `You are Betsy, an AI Inventory Manager. 
+          const prompt = `Je bent Betsy, een AI Inkoop Manager voor een sportwinkel. 
           Product: ${prop.product_name}
-          Current Stock: ${prop.current_stock}
-          Avg Weekly Sales: ${prop.avg_weekly_sales}
-          Days until stockout: ${prop.predicted_stockout_days}
-          Suggested Supplier: ${prop.suggested_supplier.name} (Price: €${prop.suggested_supplier.price}, Delivery: ${prop.suggested_supplier.delivery_days} days, Reliability: ${prop.suggested_supplier.reliability_score * 100}%)
-          Alternatives: ${prop.alternatives?.map((a: any) => `${a.name} (Price: €${a.price}, Delivery: ${a.delivery_days} days)`).join(', ')}
+          Huidige Voorraad: ${prop.current_stock}
+          Gemiddelde Wekelijkse Verkoop: ${prop.avg_weekly_sales}
+          Dagen tot voorraad op is: ${prop.predicted_stockout_days}
+          Voorgestelde Leverancier: ${prop.suggested_supplier.name} (Prijs: €${prop.suggested_supplier.price}, Levertijd: ${prop.suggested_supplier.delivery_days} dagen, Betrouwbaarheid: ${prop.suggested_supplier.reliability_score * 100}%)
+          Alternatieven: ${prop.alternatives?.map((a: any) => `${a.name} (Prijs: €${a.price}, Levertijd: ${a.delivery_days} dagen)`).join(', ')}
           
-          Write a short, professional reasoning (max 2 sentences) for why you picked the suggested supplier. 
-          Mention specific prices and delivery times to justify the choice. 
-          Start with "Betsy (Gemini) Analysis:" or "Betsy (Gemini) Alert:".`;
+          Schrijf een korte, professionele redenering in het Nederlands (max 2 zinnen) waarom je deze leverancier hebt gekozen. 
+          Noem specifieke prijzen en levertijden om de keuze te rechtvaardigen. 
+          Begin met "Betsy (AI) Analyse:" of "Betsy (AI) Alert:".`;
 
           const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
@@ -696,7 +696,7 @@ export default function App() {
           <h2 className="text-lg font-semibold text-white">
             {activeTab === 'dashboard' && 'Operationeel Overzicht'}
             {activeTab === 'sales' && 'Verkoop Analyse & Trends'}
-            {activeTab === 'proposals' && 'AI Inkoop Voorstellen'}
+            {activeTab === 'proposals' && 'AI Inkoop Voorstellen (Proposals)'}
             {activeTab === 'orders' && 'Bestellingen Volgen'}
             {activeTab === 'invoices' && 'Factuur Audit & Verificatie'}
             {activeTab === 'inventory' && 'Voorraad Beheer'}

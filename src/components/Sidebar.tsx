@@ -64,7 +64,7 @@ export function Sidebar({ activeTab, setActiveTab, setIsLoggedIn, proposalsCount
         />
         <NavItem 
           icon={<BrainCircuit size={20} />} 
-          label="AI Voorstellen" 
+          label="AI Proposals" 
           active={activeTab === 'proposals'} 
           onClick={() => setActiveTab('proposals')} 
           badge={proposalsCount}
