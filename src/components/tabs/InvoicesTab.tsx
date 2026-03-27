@@ -8,8 +8,18 @@ import { ArrowRight, AlertTriangle, CheckCircle2, BrainCircuit, Download } from 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, updateInvoice }: any) {
+export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvoice, updateInvoice }: any) {
   
+  // We filteren de orders die bij deze leverancier horen
+  const vendorOrders = React.useMemo(() => {
+    if (!selectedInvoice || !orders) return [];
+    const vendorName = selectedInvoice.vendor?.toLowerCase()?.replace(/\s+/g, '');
+    return orders.filter((o: any) => {
+      const orderVendor = o.suppliers?.name?.toLowerCase()?.replace(/\s+/g, '');
+      return orderVendor === vendorName;
+    });
+  }, [selectedInvoice, orders]);
+
   // Hulpfunctie om plaatjes te laden voor de PDF (logo's van leveranciers)
   const loadImage = (url: string): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -216,12 +226,35 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                 </div>
                 <div className="space-y-4">
                   <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Inkooporder Referentie</label>
-                  <input 
-                    type="text"
-                    value={selectedInvoice?.po_reference || ''}
-                    onChange={(e) => setSelectedInvoice({...selectedInvoice, po_reference: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50"
-                  />
+                  <div className="relative">
+                    <select 
+                      value={selectedInvoice?.order_id || ''}
+                      onChange={(e) => {
+                        const orderId = e.target.value;
+                        if (!orderId) {
+                          setSelectedInvoice({...selectedInvoice, order_id: null, po_reference: ''});
+                          return;
+                        }
+                        const order = vendorOrders.find((o: any) => o.id.toString() === orderId);
+                        setSelectedInvoice({
+                          ...selectedInvoice, 
+                          order_id: Number(orderId), 
+                          po_reference: `PO-${orderId}`
+                        });
+                      }}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 appearance-none cursor-pointer"
+                    >
+                      <option value="" className="bg-[#141414]">Selecteer een Inkooporder</option>
+                      {vendorOrders.map((o: any) => (
+                        <option key={o.id} value={o.id} className="bg-[#141414]">
+                          PO-{o.id} - {o.products?.name} ({o.quantity} stuks) - {new Date(o.order_date).toLocaleDateString('nl-NL')}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                      <ArrowRight className="rotate-90" size={16} />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -394,6 +427,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                 <thead>
                   <tr className="text-gray-500 border-b border-white/5">
                     <th className="px-6 py-4 font-medium">Factuur #</th>
+                    <th className="px-6 py-4 font-medium">Inkooporder</th>
                     <th className="px-6 py-4 font-medium">Leverancier</th>
                     <th className="px-6 py-4 font-medium">Datum</th>
                     <th className="px-6 py-4 font-medium text-right">Totaal</th>
@@ -405,6 +439,7 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                   {invoices.map((inv: any, idx: number) => (
                     <tr key={idx} className={`hover:bg-white/5 transition-colors ${inv.ai_check_status === 'error' ? 'bg-red-500/5' : ''}`}>
                       <td className="px-6 py-4 text-white font-mono">{inv.invoice_number}</td>
+                      <td className="px-6 py-4 text-gray-400 font-mono text-xs">{inv.po_reference || '-'}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {inv.vendor?.toLowerCase()?.includes('fastfootwear') && (

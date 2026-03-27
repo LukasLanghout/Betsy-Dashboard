@@ -843,6 +843,7 @@ export default function App() {
           {activeTab === 'invoices' && (
             <InvoicesTab 
               invoices={invoices} 
+              orders={rawOrders}
               selectedInvoice={selectedInvoice} 
               setSelectedInvoice={setSelectedInvoice} 
               updateInvoice={updateInvoice} 
