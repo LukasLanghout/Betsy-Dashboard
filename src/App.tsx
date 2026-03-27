@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Package, AlertTriangle, CheckCircle2, Filter, BrainCircuit, Loader2, Database, History, Trash2 } from 'lucide-react';
 import { KPICard } from './components/KPICard';
 import { StockOutPredictor } from './components/StockOutPredictor';
@@ -24,23 +24,29 @@ import { CustomersTab } from './components/tabs/CustomersTab';
 import { SalesAnalyticsTab } from './components/tabs/SalesAnalyticsTab';
 import { customerData } from './data/mockData';
 
+import type {
+  InventoryItem, Supplier, Order, Invoice,
+  Proposal, SalesDataItem, Customer,
+  ActiveTab, KPIs, ConfirmState, PipelineStage,
+} from './types/index.ts';
+
 // Welkom bij de hoofd-app! 
 // Ik heb geprobeerd om alles in het Nederlands te zetten zodat Lucas het snapt.
 // Dit was best veel werk, maar het dashboard ziet er nu goed uit.
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'proposals' | 'orders' | 'inventory' | 'suppliers' | 'invoices' | 'customers' | 'sales'>('dashboard');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   // Alle data die we uit de database halen slaan we hier op in de 'state'
-  const [inventory, setInventory] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
-  const [rawOrders, setRawOrders] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [proposals, setProposals] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [salesData, setSalesData] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [orders, setOrders] = useState<PipelineStage[]>([]);
+  const [rawOrders, setRawOrders] = useState<Order[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [salesData, setSalesData] = useState<SalesDataItem[]>([]);
   
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [adjustingProposal, setAdjustingProposal] = useState<number | null>(null);
@@ -50,13 +56,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedSupplier, setSelectedSupplier] = useState<string>('All');
   const [drillDownProduct, setDrillDownProduct] = useState<any | null>(null);
-  const [showConfirm, setShowConfirm] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    type: 'danger' | 'warning' | 'info';
-  }>({
+  const [showConfirm, setShowConfirm] = useState<ConfirmState>({
     isOpen: false,
     title: '',
     message: '',
@@ -65,7 +65,7 @@ export default function App() {
   });
 
   // Functie om alle data op te halen van Supabase
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!hasSupabaseConfig) {
       console.warn('WAARSCHUWING: Supabase configuratie ontbreekt! Check je .env bestand of de instellingen in AI Studio.');
       setLoading(false);
@@ -319,7 +319,7 @@ export default function App() {
           Begin met "Betsy (AI) Analyse:" of "Betsy (AI) Alert:".`;
 
           const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
+            model: "gemini-2.0-flash",
             contents: prompt,
           });
 
@@ -335,13 +335,13 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isLoggedIn) {
       fetchData();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, fetchData]);
 
   const updateStock = async (productId: number, newStock: number) => {
     setShowConfirm({
