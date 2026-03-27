@@ -65,6 +65,11 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     }
   }, [availableMonths, selectedMonth]);
 
+  // Reset zoom when month changes
+  React.useEffect(() => {
+    zoomOut();
+  }, [selectedMonth]);
+
   // We halen alle unieke productnamen op
   const products = useMemo(() => Array.from(new Set(salesData.map(d => d.product_name))), [salesData]);
   
@@ -173,7 +178,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
 
   // Peak Analyse Logic
   const peakAnalysis = useMemo(() => {
-    if (viewMode !== 'daily' || zoomedData.length === 0) return [];
+    if (zoomedData.length === 0) return [];
     
     const totals = zoomedData.map(d => ({
       date: d.date,
@@ -181,7 +186,22 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     }));
     
     const avg = totals.reduce((sum, d) => sum + d.total, 0) / totals.length;
-    const peaks = totals.filter(d => d.total > avg * 1.3); // Slightly lower threshold for zoomed view
+    const isZoomed = left !== 'dataMin' || right !== 'dataMax';
+    
+    // Improved peak detection
+    const peaks = totals.filter((d, i) => {
+      const isHigherThanAvg = d.total > avg * (isZoomed ? 1.1 : 1.4);
+      
+      // Local maximum check (especially useful when zoomed)
+      if (isZoomed && totals.length > 3) {
+        const prev = totals[i - 1]?.total ?? 0;
+        const next = totals[i + 1]?.total ?? 0;
+        const isLocalMax = d.total > prev && d.total > next;
+        return isHigherThanAvg || (isLocalMax && d.total > avg * 1.05);
+      }
+      
+      return isHigherThanAvg;
+    });
     
     // We voegen wat "AI" verklaringen toe aan de pieken
     const explanations: { [key: string]: string } = {
@@ -194,18 +214,35 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
       '11-29': 'Black Friday Weekend - Extreme piek in alle sportartikelen door hoge kortingen.',
       '11-30': 'Cyber Monday - Laatste kans op kortingen, vooral online verkoop piekt.',
       '12-24': 'Kerstinkopen - Last-minute cadeaus voor de feestdagen.',
-      '12-26': 'Tweede Kerstdag - Start van de winteruitverkoop.'
+      '12-26': 'Tweede Kerstdag - Start van de winteruitverkoop.',
+      '01-01': 'Nieuwjaarsrun - Veel mensen starten hun goede voornemens met nieuwe hardloopschoenen.',
+      '06-21': 'Start van de zomer - Hoge vraag naar lichte sportkleding en tennis gear.'
     };
 
     return peaks.map(p => {
       const day = p.date.substring(8, 10);
       const monthDay = p.date.substring(5, 10);
+      const month = p.date.substring(5, 7);
+      
+      let reason = explanations[monthDay] || explanations[day];
+      
+      if (!reason && viewMode === 'monthly') {
+        const monthNames: {[key: string]: string} = {
+          '01': 'Januari Sale & Goede Voornemens',
+          '06': 'Zomerseizoen & Buitensporten',
+          '07': 'Vakantieperiode & Tour de France hype',
+          '11': 'Black Friday & Voorbereiding Feestdagen',
+          '12': 'Kerstinkopen & Eindejaarsbonus'
+        };
+        reason = monthNames[month] || 'Seizoensgebonden groei in deze periode.';
+      }
+
       return {
         ...p,
-        reason: explanations[monthDay] || explanations[day] || 'Onverklaarbare piek - Mogelijk een lokale promotie of bulkbestelling.'
+        reason: reason || 'Lokale verkooppiek - Mogelijk een gerichte promotie of evenement.'
       };
     });
-  }, [zoomedData, products, viewMode]);
+  }, [zoomedData, products, viewMode, left, right]);
 
   const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444'];
 
@@ -360,7 +397,6 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   strokeOpacity={0.3} 
                   fill="#3b82f6" 
                   fillOpacity={0.3} 
-                  isFront={true}
                 />
               ) : null}
             </AreaChart>
@@ -372,7 +408,14 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
           <div className="mt-8 pt-8 border-t border-white/5">
             <div className="flex items-center gap-2 mb-4">
               <BrainCircuit className="text-emerald-500" size={20} />
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest">Betsy's Peak Analyse</h4>
+              <h4 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                Betsy's Peak Analyse
+                {(left !== 'dataMin' || right !== 'dataMax') && (
+                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-500 text-[10px] rounded-full border border-emerald-500/20">
+                    Gefilterd op Zoom
+                  </span>
+                )}
+              </h4>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {peakAnalysis.map((peak, idx) => (
@@ -436,12 +479,15 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {dailyBreakdown.map((day: any) => {
+              {zoomedData.map((day: any) => {
                 const dayTotal = products.reduce((sum, p) => sum + (day[p] || 0), 0);
                 return (
                   <tr key={day.date} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 text-gray-400 font-mono text-xs">
-                      {formatDate(day.date, { day: '2-digit', month: 'short' })}
+                      {viewMode === 'daily' 
+                        ? formatDate(day.date, { day: '2-digit', month: 'short' })
+                        : formatMonth(day.date)
+                      }
                     </td>
                     {products.map(product => (
                       <td key={product} className="px-6 py-4 text-white font-mono">
@@ -457,9 +503,9 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
             </tbody>
             <tfoot className="bg-white/5">
               <tr>
-                <td className="px-6 py-4 font-bold text-white">Maand Totaal</td>
+                <td className="px-6 py-4 font-bold text-white">Selectie Totaal</td>
                 {products.map(product => {
-                  const total = dailyBreakdown.reduce((sum, d) => sum + (d[product] || 0), 0);
+                  const total = zoomedData.reduce((sum, d) => sum + (d[product] || 0), 0);
                   return (
                     <td key={product} className="px-6 py-4 font-bold text-white font-mono">
                       {total}
@@ -467,7 +513,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   );
                 })}
                 <td className="px-6 py-4 font-bold text-emerald-500 font-mono">
-                  {dailyBreakdown.reduce((sum, d) => sum + products.reduce((s, p) => s + (d[p] || 0), 0), 0)}
+                  {zoomedData.reduce((sum, d) => sum + products.reduce((s, p) => s + (d[p] || 0), 0), 0)}
                 </td>
               </tr>
             </tfoot>
