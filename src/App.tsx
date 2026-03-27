@@ -128,7 +128,14 @@ export default function App() {
         }
 
         // We gebruiken de avg_weekly_sales direct uit de inventory tabel (zoals getoond in Supabase)
-        const avgWeeklySales = invItem?.avg_weekly_sales || 0;
+        // Als deze 0 is, proberen we het te berekenen op basis van de sales tabel
+        let avgWeeklySales = invItem?.avg_weekly_sales || 0;
+        if (avgWeeklySales === 0 && slsData && slsData.length > 0) {
+          const productSales = (slsData || []).filter((s: any) => String(s.product_id) === String(product.id));
+          const totalQty = productSales.reduce((sum: number, s: any) => sum + (s.quantity || 0), 0);
+          // We nemen aan dat de sales data over ongeveer 4 weken gaat voor een gemiddelde
+          avgWeeklySales = Math.round((totalQty / 4) * 10) / 10;
+        }
 
         return {
           id: invItem?.id,
@@ -206,10 +213,12 @@ export default function App() {
           const productId = item.product_id || item.id;
           // Filter out items that already have a pending or approved order
           const hasActiveOrder = (ordData || []).some((o: any) => 
-            (o.product_id === productId || o.product_id === String(productId)) && 
+            (String(o.product_id) === String(productId)) && 
             ['pending', 'approved', 'processing', 'shipped'].includes(o.status?.toLowerCase())
           );
-          return item.stock_level < item.reorder_point && !hasActiveOrder;
+          
+          const isLowStock = Number(item.stock_level) < Number(item.reorder_point);
+          return isLowStock && !hasActiveOrder;
         })
         .map(item => {
           const productId = item.product_id || item.id;
@@ -333,7 +342,7 @@ export default function App() {
     }
   }, [isLoggedIn, fetchData]);
 
-  const updateStock = async (productId: number, newStock: number) => {
+  const updateStock = async (productId: any, newStock: number) => {
     setShowConfirm({
       isOpen: true,
       title: 'Voorraad aanpassen?',
@@ -352,7 +361,7 @@ export default function App() {
     });
   };
 
-  const updateReorderPoint = async (productId: number, newPoint: number) => {
+  const updateReorderPoint = async (productId: any, newPoint: number) => {
     setShowConfirm({
       isOpen: true,
       title: 'Bestelpunt aanpassen?',
@@ -382,10 +391,21 @@ export default function App() {
           const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', order.id);
           if (!error) {
             // Update stock level
-            const currentItem = inventory.find((item: any) => item.product_id === order.product_id);
+            console.log("Order delivered, updating stock for product:", order.product_id);
+            const currentItem = inventory.find((item: any) => String(item.product_id) === String(order.product_id));
             if (currentItem) {
-              const newStock = (currentItem.stock_level || 0) + (order.quantity || 0);
-              await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', order.product_id);
+              const newStock = Number(currentItem.stock_level || 0) + Number(order.quantity || 0);
+              console.log(`Updating stock from ${currentItem.stock_level} to ${newStock}`);
+              const { error: invError } = await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', order.product_id);
+              if (invError) console.error("Inventory update error:", invError);
+            } else {
+              console.warn("Could not find item in inventory to update stock:", order.product_id);
+              // Fallback: try to update directly even if not in state
+              const { data: currentInv } = await supabase.from('inventory').select('stock_level').eq('product_id', order.product_id).single();
+              if (currentInv) {
+                const newStock = Number(currentInv.stock_level || 0) + Number(order.quantity || 0);
+                await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', order.product_id);
+              }
             }
 
             // Create Invoice
