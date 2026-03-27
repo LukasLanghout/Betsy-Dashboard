@@ -45,7 +45,6 @@ export default function App() {
   const [rawOrders, setRawOrders] = useState<Order[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [salesData, setSalesData] = useState<SalesDataItem[]>([]);
   
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
@@ -81,7 +80,6 @@ export default function App() {
         { data: ordData },
         { data: invcData },
         { data: supPricesData },
-        { data: custData },
         { data: slsData }
       ] = await Promise.all([
         supabase.from('inventory').select('*, products(*)'),
@@ -90,7 +88,6 @@ export default function App() {
         supabase.from('orders').select('*, products(*), suppliers(*)').order('id', { ascending: false }),
         supabase.from('invoices').select('*').order('id', { ascending: false }),
         supabase.from('supplier_prices').select('*'),
-        supabase.from('customers').select('*').order('name', { ascending: true }),
         supabase.from('sales_data').select('*').order('date', { ascending: true }).limit(5000)
       ]);
 
@@ -178,10 +175,6 @@ export default function App() {
         };
       });
       setInvoices(formattedInvoices);
-
-      if (custData) {
-        setCustomers(custData);
-      }
 
       if (slsData) {
         setSalesData(slsData);
@@ -701,7 +694,6 @@ export default function App() {
             {activeTab === 'invoices' && 'Factuur Audit & Verificatie'}
             {activeTab === 'inventory' && 'Voorraad Beheer'}
             {activeTab === 'suppliers' && 'Leveranciers Netwerk'}
-            {activeTab === 'customers' && 'Klantenbestand'}
           </h2>
           <div className="flex items-center gap-4">
             <button 
@@ -855,10 +847,6 @@ export default function App() {
               setSelectedInvoice={setSelectedInvoice} 
               updateInvoice={updateInvoice} 
             />
-          )}
-
-          {activeTab === 'customers' && (
-            <CustomersTab customers={customers} fetchData={fetchData} />
           )}
         </div>
       </main>

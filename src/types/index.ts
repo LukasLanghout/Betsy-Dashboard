@@ -124,7 +124,6 @@ export type ActiveTab =
   | 'inventory'
   | 'suppliers'
   | 'invoices'
-  | 'customers'
   | 'sales';
 
 export interface KPIs {
