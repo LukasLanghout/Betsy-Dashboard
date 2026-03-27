@@ -119,8 +119,14 @@ export default function App() {
       }
 
       const formattedInventory = (prdData || []).map((product: any) => {
-        const invItem = (invData || []).find((item: any) => item.product_id === product.id);
+        const invItem = (invData || []).find((item: any) => String(item.product_id) === String(product.id));
         
+        if (invItem) {
+          console.log(`Mapping Product ${product.name}: Found invItem with avg_weekly_sales: ${invItem.avg_weekly_sales}`);
+        } else {
+          console.warn(`Mapping Product ${product.name}: No invItem found for product.id ${product.id}`);
+        }
+
         // We gebruiken de avg_weekly_sales direct uit de inventory tabel (zoals getoond in Supabase)
         const avgWeeklySales = invItem?.avg_weekly_sales || 0;
 

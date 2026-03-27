@@ -15,8 +15,8 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
     if (!selectedInvoice || !orders) return [];
     const vendorName = selectedInvoice.vendor?.toLowerCase()?.replace(/\s+/g, '');
     return orders.filter((o: any) => {
-      const orderVendor = o.suppliers?.name?.toLowerCase()?.replace(/\s+/g, '');
-      return orderVendor === vendorName;
+      const orderVendor = (o.suppliers?.name || o.supplier_name || '').toLowerCase()?.replace(/\s+/g, '');
+      return orderVendor === vendorName || orderVendor.includes(vendorName) || vendorName.includes(orderVendor);
     });
   }, [selectedInvoice, orders]);
 
@@ -152,6 +152,22 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
 
     // PDF opslaan
     doc.save(`Factuur_${invoice.invoice_number || 'Concept'}.pdf`);
+  };
+
+  // We proberen automatisch een order te vinden die bij deze factuur past voor weergave
+  const getSuggestedOrderId = (inv: any) => {
+    if (inv.order_id) return `#PO-${String(inv.order_id).padStart(4, '0')}`;
+    if (inv.po_reference && inv.po_reference !== '-' && inv.po_reference !== '') return inv.po_reference;
+
+    const vendorName = (inv.vendor || '').toLowerCase().replace(/\s+/g, '');
+    const invDate = new Date(inv.invoice_date || inv.date).toLocaleDateString('nl-NL');
+    const matchingOrder = orders.find((o: any) => {
+      const orderVendor = (o.suppliers?.name || o.supplier_name || '').toLowerCase().replace(/\s+/g, '');
+      const orderDate = new Date(o.order_date).toLocaleDateString('nl-NL');
+      return orderVendor === vendorName && orderDate === invDate;
+    });
+
+    return matchingOrder ? `#PO-${String(matchingOrder.id).padStart(4, '0')} (Auto)` : '-';
   };
 
   return (
@@ -439,7 +455,9 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
                   {invoices.map((inv: any, idx: number) => (
                     <tr key={idx} className={`hover:bg-white/5 transition-colors ${inv.ai_check_status === 'error' ? 'bg-red-500/5' : ''}`}>
                       <td className="px-6 py-4 text-white font-mono">{inv.invoice_number}</td>
-                      <td className="px-6 py-4 text-gray-400 font-mono text-xs">{inv.po_reference || '-'}</td>
+                      <td className="px-6 py-4 text-gray-400 font-mono text-xs">
+                        {getSuggestedOrderId(inv)}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {inv.vendor?.toLowerCase()?.includes('fastfootwear') && (
