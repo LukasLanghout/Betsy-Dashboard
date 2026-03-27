@@ -62,6 +62,12 @@ export default function App() {
     onConfirm: () => {},
     type: 'warning'
   });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   // Functie om alle data op te halen van Supabase
   const fetchData = useCallback(async () => {
@@ -342,7 +348,7 @@ export default function App() {
     }
   }, [isLoggedIn, fetchData]);
 
-  const updateStock = async (productId: any, newStock: number) => {
+  const updateStock = async (productId: any, newStock: number, onCancel?: () => void) => {
     setShowConfirm({
       isOpen: true,
       title: 'Voorraad aanpassen?',
@@ -350,18 +356,34 @@ export default function App() {
       type: 'warning',
       onConfirm: async () => {
         try {
-          const { error } = await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', productId);
+          // Check if inventory record exists
+          const { data: existing } = await supabase.from('inventory').select('id').eq('product_id', productId).maybeSingle();
+          
+          let error;
+          if (existing) {
+            const result = await supabase.from('inventory').update({ stock_level: newStock }).eq('product_id', productId);
+            error = result.error;
+          } else {
+            const result = await supabase.from('inventory').insert({ product_id: productId, stock_level: newStock, reorder_point: 10, avg_weekly_sales: 0 });
+            error = result.error;
+          }
+          
           if (!error) fetchData();
+          else console.error('Error updating stock:', error);
         } catch (error) {
           console.error('Error updating stock:', error);
         } finally {
           setShowConfirm(prev => ({ ...prev, isOpen: false }));
         }
+      },
+      onCancel: () => {
+        if (onCancel) onCancel();
+        setShowConfirm(prev => ({ ...prev, isOpen: false }));
       }
     });
   };
 
-  const updateReorderPoint = async (productId: any, newPoint: number) => {
+  const updateReorderPoint = async (productId: any, newPoint: number, onCancel?: () => void) => {
     setShowConfirm({
       isOpen: true,
       title: 'Bestelpunt aanpassen?',
@@ -369,13 +391,29 @@ export default function App() {
       type: 'warning',
       onConfirm: async () => {
         try {
-          const { error } = await supabase.from('inventory').update({ reorder_point: newPoint }).eq('product_id', productId);
+          // Check if inventory record exists
+          const { data: existing } = await supabase.from('inventory').select('id').eq('product_id', productId).maybeSingle();
+          
+          let error;
+          if (existing) {
+            const result = await supabase.from('inventory').update({ reorder_point: newPoint }).eq('product_id', productId);
+            error = result.error;
+          } else {
+            const result = await supabase.from('inventory').insert({ product_id: productId, stock_level: 0, reorder_point: newPoint, avg_weekly_sales: 0 });
+            error = result.error;
+          }
+          
           if (!error) fetchData();
+          else console.error('Error updating reorder point:', error);
         } catch (error) {
           console.error('Error updating reorder point:', error);
         } finally {
           setShowConfirm(prev => ({ ...prev, isOpen: false }));
         }
+      },
+      onCancel: () => {
+        if (onCancel) onCancel();
+        setShowConfirm(prev => ({ ...prev, isOpen: false }));
       }
     });
   };
@@ -443,6 +481,7 @@ export default function App() {
             }
 
             fetchData();
+            showToast('Bestelling geleverd. Voorraad is bijgewerkt.');
           }
         } catch (error) {
           console.error('Error delivering order:', error);
@@ -486,6 +525,7 @@ export default function App() {
             fetchData();
             setActiveTab('proposals');
             setAdjustingProposal(null);
+            showToast('Bestelling geplaatst. Voorraad wordt bijgewerkt na levering.');
           }
         } catch (error) {
           console.error('Error approving order:', error);
@@ -530,13 +570,21 @@ export default function App() {
 
   // McKinsey-style KPI Calculations
   const kpis = useMemo(() => {
+    // Filter sales data based on selected category
+    const filteredSalesData = selectedCategory === 'All' 
+      ? salesData 
+      : salesData.filter(sale => {
+          const product = inventory.find(i => i.name === sale.product_name);
+          return product && product.category === selectedCategory;
+        });
+
     // 1. Revenue & Sales (Combined with Growth)
-    const totalRevenue = salesData.reduce((sum, sale) => {
+    const totalRevenue = filteredSalesData.reduce((sum, sale) => {
       // We gaan ervan uit dat 'sales' in de database al de omzet (revenue) is.
       return sum + sale.sales;
     }, 0);
 
-    const sortedSales = [...salesData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const sortedSales = [...filteredSalesData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const latestMonth = sortedSales.slice(0, 4);
     const prevMonth = sortedSales.slice(4, 8);
     const latestRev = latestMonth.reduce((sum, s) => sum + s.sales, 0);
@@ -544,27 +592,27 @@ export default function App() {
     const revGrowth = prevRev > 0 ? ((latestRev - prevRev) / prevRev) * 100 : 0;
 
     // 2. Inventory Optimization (Stock Turnover + DOI)
-    const avgStock = inventory.reduce((sum, item) => sum + (item.stock_level || 0), 0) / (inventory.length || 1);
+    const avgStock = filteredInventory.reduce((sum, item) => sum + (item.stock_level || 0), 0) / (filteredInventory.length || 1);
     
     // Bereken totaal aantal verkochte eenheden (units)
-    const totalSalesVol = salesData.reduce((sum, s) => {
-      const product = inventory.find(p => p.name === s.product_name);
+    const totalSalesVol = filteredSalesData.reduce((sum, s) => {
+      const product = filteredInventory.find(p => p.name === s.product_name);
       const units = product?.base_price > 0 ? s.sales / product.base_price : s.sales;
       return sum + units;
     }, 0);
 
     // We schatten het aantal dagen in de dataset (bijv. 31 voor januari)
-    const daysInPeriod = Math.max(1, salesData.length / (inventory.length || 1));
+    const daysInPeriod = Math.max(1, filteredSalesData.length / (filteredInventory.length || 1));
     
     // Omloopsnelheid (Turnover) = Totaal verkochte eenheden / Gemiddelde voorraad
-    const stockTurnover = (avgStock * inventory.length) > 0 ? (totalSalesVol / (avgStock * inventory.length)) : 0;
+    const stockTurnover = (avgStock * filteredInventory.length) > 0 ? (totalSalesVol / (avgStock * filteredInventory.length)) : 0;
     
     // Days of Inventory (DOI) = Huidige voorraad / Gemiddelde verkoop per dag
     const avgDailySales = totalSalesVol / daysInPeriod;
-    const doi = avgDailySales > 0 ? (avgStock * inventory.length) / avgDailySales : 0;
+    const doi = avgDailySales > 0 ? (avgStock * filteredInventory.length) / avgDailySales : 0;
 
-    const lowStockCount = inventory.filter(item => (item.stock_level || 0) < (item.reorder_point || 0)).length;
-    const stockRiskPct = (lowStockCount / (inventory.length || 1)) * 100;
+    const lowStockCount = filteredInventory.filter(item => (item.stock_level || 0) < (item.reorder_point || 0)).length;
+    const stockRiskPct = (lowStockCount / (filteredInventory.length || 1)) * 100;
 
     // 3. Supplier Performance (Reliability + Lead Time)
     const avgReliability = suppliers.reduce((sum, s) => sum + (s.reliability_score || 0), 0) / (suppliers.length || 1);
@@ -585,14 +633,14 @@ export default function App() {
       avgLeadTime,
       aiErrorRate
     };
-  }, [salesData, inventory, suppliers, invoices]);
+  }, [salesData, inventory, suppliers, invoices, selectedCategory, filteredInventory]);
 
   // Executive Insights Logic (Insight Strip)
   const executiveInsights = useMemo(() => {
     const insights = [];
 
     // Insight 1: Stockout Alert
-    const topSellingLowStock = inventory
+    const topSellingLowStock = filteredInventory
       .filter(i => (i.stock_level || 0) < (i.reorder_point || 0))
       .sort((a, b) => (b.avg_weekly_sales || 0) - (a.avg_weekly_sales || 0))[0];
     
@@ -636,7 +684,7 @@ export default function App() {
     }
 
     return insights.slice(0, 3);
-  }, [kpis, inventory, suppliers, invoices]);
+  }, [kpis, filteredInventory, suppliers, invoices]);
 
   if (!isLoggedIn) {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
@@ -881,6 +929,13 @@ export default function App() {
         />
       )}
 
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-4 right-4 bg-emerald-500 text-black px-4 py-2 rounded-lg text-sm font-bold z-50 animate-in fade-in slide-in-from-top-4">
+          {toastMessage}
+        </div>
+      )}
+
       {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={showConfirm.isOpen}
@@ -888,7 +943,10 @@ export default function App() {
         message={showConfirm.message}
         type={showConfirm.type}
         onConfirm={showConfirm.onConfirm}
-        onCancel={() => setShowConfirm(prev => ({ ...prev, isOpen: false }))}
+        onCancel={() => {
+          if (showConfirm.onCancel) showConfirm.onCancel();
+          else setShowConfirm(prev => ({ ...prev, isOpen: false }));
+        }}
       />
       {/* Supabase Status Indicator */}
       {!hasSupabaseConfig && (

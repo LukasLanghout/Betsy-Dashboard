@@ -8,7 +8,7 @@ import { ArrowRight, AlertTriangle, CheckCircle2, BrainCircuit, Download } from 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvoice, updateInvoice }: any) {
+export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvoice, updateInvoice, addToast }: any) {
   
   // We filteren de orders die bij deze leverancier horen
   const vendorOrders = React.useMemo(() => {
@@ -44,6 +44,7 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
 
   // Functie om een mooie PDF factuur te genereren
   const downloadPDF = async (invoice: any) => {
+    if (addToast) addToast('PDF genereren...', 'info');
     const doc = new jsPDF();
     
     const vendorName = invoice.vendor || 'Onbekende Leverancier';
@@ -280,7 +281,7 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="text-gray-500 border-b border-white/5">
-                        <th className="px-6 py-4 font-medium">Product Naam</th>
+                        <th className="px-6 py-4 font-medium min-w-[250px]">Product Naam</th>
                         <th className="px-6 py-4 font-medium">Aantal</th>
                         <th className="px-6 py-4 font-medium">Stukprijs</th>
                         <th className="px-6 py-4 font-medium text-right">Totaal</th>

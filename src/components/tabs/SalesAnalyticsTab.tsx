@@ -25,13 +25,22 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [viewMode, setViewMode] = useState<'monthly' | 'daily'>('daily');
 
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    salesData.forEach(d => {
+      if (d.date && typeof d.date === 'string') {
+        months.add(d.date.substring(0, 7) + '-01');
+      }
+    });
+    return Array.from(months).sort().reverse();
+  }, [salesData]);
+
   // We zetten de default maand zodra de data binnen is
   React.useEffect(() => {
-    if (salesData.length > 0 && !selectedMonth) {
-      const lastDate = salesData[salesData.length - 1].date;
-      setSelectedMonth(lastDate.substring(0, 7) + '-01');
+    if (availableMonths.length > 0 && !selectedMonth) {
+      setSelectedMonth(availableMonths[0]);
     }
-  }, [salesData, selectedMonth]);
+  }, [availableMonths, selectedMonth]);
 
   // We halen alle unieke productnamen op
   const products = useMemo(() => Array.from(new Set(salesData.map(d => d.product_name))), [salesData]);
@@ -306,7 +315,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="bg-transparent text-sm text-white outline-none cursor-pointer"
               >
-                {Array.from(new Set(salesData.map(d => d.date.substring(0, 7) + '-01'))).sort().reverse().map(date => (
+                {availableMonths.map(date => (
                   <option key={date} value={date} className="bg-[#141414]">
                     {new Date(date).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })}
                   </option>

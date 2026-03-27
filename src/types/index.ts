@@ -150,6 +150,7 @@ export interface ConfirmState {
   title: string;
   message: string;
   onConfirm: () => void;
+  onCancel?: () => void;
   type: 'danger' | 'warning' | 'info';
 }
 
