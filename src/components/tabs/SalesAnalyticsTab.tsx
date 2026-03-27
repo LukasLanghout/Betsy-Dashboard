@@ -250,6 +250,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
             </h3>
             <p className="text-xs text-gray-500 mt-1">
               {viewMode === 'monthly' ? 'Maandelijkse prestaties over de tijd' : 'Gedetailleerd verloop van de huidige maand'}
+              <span className="ml-2 text-emerald-500/50 italic">(Sleep over de grafiek om in te zoomen)</span>
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -275,7 +276,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
           </div>
         </div>
 
-        <div className="h-[400px] w-full select-none">
+        <div className="h-[400px] w-full select-none cursor-crosshair">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart 
               data={currentChartData}
@@ -297,6 +298,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 stroke="#666" 
                 fontSize={10} 
                 domain={[left, right]}
+                allowDataOverflow={true}
                 tickFormatter={(str) => {
                   if (!str) return '';
                   const [year, month, day] = str.split('-');
@@ -314,6 +316,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 stroke="#666" 
                 fontSize={10} 
                 domain={[bottom, top]}
+                allowDataOverflow={true}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(val) => val.toLocaleString()}
@@ -336,6 +339,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   strokeWidth={2}
                   activeDot={{ r: 6, strokeWidth: 0 }}
                   dot={currentChartData.length === 1}
+                  isAnimationActive={false}
                 />
               ))}
               {peakAnalysis.map((peak, idx) => (
@@ -350,7 +354,14 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 />
               ))}
               {refAreaLeft && refAreaRight ? (
-                <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#3b82f6" fillOpacity={0.1} />
+                <ReferenceArea 
+                  x1={refAreaLeft} 
+                  x2={refAreaRight} 
+                  strokeOpacity={0.3} 
+                  fill="#3b82f6" 
+                  fillOpacity={0.3} 
+                  isFront={true}
+                />
               ) : null}
             </AreaChart>
           </ResponsiveContainer>
