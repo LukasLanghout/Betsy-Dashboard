@@ -77,6 +77,16 @@ export interface Proposal {
   suggested_supplier: ProposalSupplier;
   alternatives: ProposalSupplier[];
   reasoning: string;
+  category: string;
+  total_order_cost: number;
+  savings_vs_expensive: number;
+  savings_percentage: number;
+  urgency: 'critical' | 'high' | 'medium';
+  sales_trend: 'rising' | 'stable' | 'declining';
+  sales_trend_pct: number;
+  estimated_delivery_date: string;
+  stock_coverage_after_order: number;
+  base_price: number;
 }
 
 export interface ProposalSupplier {

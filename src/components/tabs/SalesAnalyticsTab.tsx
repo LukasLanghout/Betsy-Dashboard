@@ -21,6 +21,20 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, Minus, BarChart3, Calendar, Table as TableIcon, BrainCircuit, Info } from 'lucide-react';
 
+const formatMonth = (dateString: string) => {
+  if (!dateString) return '';
+  const [year, month] = dateString.split('-');
+  const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+  return date.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
+};
+
+const formatDate = (dateString: string, options: Intl.DateTimeFormatOptions) => {
+  if (!dateString) return '';
+  const [year, month, day] = dateString.split('-');
+  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day || '1'));
+  return date.toLocaleDateString('nl-NL', options);
+};
+
 export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [viewMode, setViewMode] = useState<'monthly' | 'daily'>('daily');
@@ -184,7 +198,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h3 className="text-xl font-bold text-white">
-              {viewMode === 'monthly' ? 'Verkoopgeschiedenis & Trends' : `Dagelijkse Trends - ${new Date(selectedMonth).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })}`}
+              {viewMode === 'monthly' ? 'Verkoopgeschiedenis & Trends' : `Dagelijkse Trends - ${formatMonth(selectedMonth)}`}
             </h3>
             <p className="text-xs text-gray-500 mt-1">
               {viewMode === 'monthly' ? 'Maandelijkse prestaties over de tijd' : 'Gedetailleerd verloop van de huidige maand'}
@@ -216,7 +230,9 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 stroke="#666" 
                 fontSize={10} 
                 tickFormatter={(str) => {
-                  const date = new Date(str);
+                  if (!str) return '';
+                  const [year, month, day] = str.split('-');
+                  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day || '1'));
                   if (viewMode === 'daily') {
                     return date.toLocaleDateString('nl-NL', { day: '2-digit', month: 'short' });
                   }
@@ -236,7 +252,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
               <Tooltip 
                 contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '12px', fontSize: '12px' }}
                 itemStyle={{ padding: '2px 0' }}
-                labelFormatter={(label) => new Date(label).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                labelFormatter={(label) => formatDate(label, { day: 'numeric', month: 'long', year: 'numeric' })}
               />
               <Legend verticalAlign="top" height={36} iconType="circle" />
               {products.map((product, idx) => (
@@ -283,7 +299,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-white mb-1">
-                      {new Date(peak.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}
+                      {formatDate(peak.date, { day: 'numeric', month: 'long' })}
                     </p>
                     <p className="text-[11px] text-gray-400 leading-relaxed">
                       {peak.reason}
@@ -317,7 +333,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
               >
                 {availableMonths.map(date => (
                   <option key={date} value={date} className="bg-[#141414]">
-                    {new Date(date).toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })}
+                    {formatMonth(date)}
                   </option>
                 ))}
               </select>
@@ -342,7 +358,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 return (
                   <tr key={day.date} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 text-gray-400 font-mono text-xs">
-                      {new Date(day.date).toLocaleDateString('nl-NL', { day: '2-digit', month: 'short' })}
+                      {formatDate(day.date, { day: '2-digit', month: 'short' })}
                     </td>
                     {products.map(product => (
                       <td key={product} className="px-6 py-4 text-white font-mono">

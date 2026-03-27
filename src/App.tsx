@@ -228,7 +228,8 @@ export default function App() {
         })
         .map(item => {
           const productId = item.product_id || item.id;
-          const predicted_stockout_days = Math.max(1, Math.floor((item.stock_level / (item.avg_weekly_sales || 1)) * 7));
+          const avgDailySales = (item.avg_weekly_sales || 10) / 7;
+          const predicted_stockout_days = Math.max(1, Math.floor(item.stock_level / avgDailySales));
           
           // Find specific supplier prices for this product
           let productSuppliers = (supPricesData || [])
@@ -274,6 +275,50 @@ export default function App() {
 
           const suggestedSupplier = productSuppliers[0] || { name: 'Default', price: 10, delivery_days: 5, reliability_score: 0.9 };
           const alternatives = productSuppliers.slice(1, 4);
+          const recommended_order = Math.max(1, (item.reorder_point * 2) - item.stock_level);
+
+          // Sales Trend berekening
+          const productSales = (slsData || []).filter((s: any) => String(s.product_name) === String(item.name));
+          productSales.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          
+          const now = new Date();
+          const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+          const fourWeeksAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+          
+          const last14DaysSales = productSales.filter((s: any) => new Date(s.date) >= twoWeeksAgo).reduce((sum: number, s: any) => sum + s.sales, 0);
+          const prev14DaysSales = productSales.filter((s: any) => new Date(s.date) >= fourWeeksAgo && new Date(s.date) < twoWeeksAgo).reduce((sum: number, s: any) => sum + s.sales, 0);
+          
+          let sales_trend: 'rising' | 'stable' | 'declining' = 'stable';
+          let sales_trend_pct = 0;
+          
+          if (prev14DaysSales > 0) {
+            sales_trend_pct = ((last14DaysSales - prev14DaysSales) / prev14DaysSales) * 100;
+            if (sales_trend_pct > 10) sales_trend = 'rising';
+            else if (sales_trend_pct < -10) sales_trend = 'declining';
+          }
+
+          // Kosten & Besparing
+          const total_order_cost = recommended_order * suggestedSupplier.price;
+          const maxPriceSupplier = [...productSuppliers].sort((a: any, b: any) => b.price - a.price)[0];
+          const maxPrice = maxPriceSupplier ? maxPriceSupplier.price : suggestedSupplier.price;
+          const savings_vs_expensive = (maxPrice - suggestedSupplier.price) * recommended_order;
+          const savings_percentage = maxPrice > 0 ? ((maxPrice - suggestedSupplier.price) / maxPrice) * 100 : 0;
+
+          // Urgentie
+          let urgency: 'critical' | 'high' | 'medium' = 'medium';
+          if (predicted_stockout_days <= suggestedSupplier.delivery_days) {
+            urgency = 'critical';
+          } else if (predicted_stockout_days <= suggestedSupplier.delivery_days + 5) {
+            urgency = 'high';
+          }
+
+          // Geschatte leverdatum
+          const deliveryDate = new Date(now.getTime() + suggestedSupplier.delivery_days * 24 * 60 * 60 * 1000);
+          const estimated_delivery_date = deliveryDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+
+          // Dekkingsdagen na levering
+          const stockAtDelivery = Math.max(0, item.stock_level - (suggestedSupplier.delivery_days * avgDailySales));
+          const stock_coverage_after_order = Math.floor((stockAtDelivery + recommended_order) / avgDailySales);
 
           return {
             product_id: productId,
@@ -282,10 +327,20 @@ export default function App() {
             avg_weekly_sales: item.avg_weekly_sales || 10,
             predicted_stockout_days,
             reorder_point: item.reorder_point,
-            recommended_order: Math.max(1, (item.reorder_point * 2) - item.stock_level),
+            recommended_order,
             suggested_supplier: suggestedSupplier,
             alternatives: alternatives,
-            reasoning: "Analyzing..."
+            reasoning: "Analyzing...",
+            category: item.category,
+            total_order_cost,
+            savings_vs_expensive,
+            savings_percentage,
+            urgency,
+            sales_trend,
+            sales_trend_pct,
+            estimated_delivery_date,
+            stock_coverage_after_order,
+            base_price: item.base_price
           };
         });
       
@@ -295,12 +350,19 @@ export default function App() {
       newProposals.forEach(async (prop: any) => {
         try {
           const generateFallbackReasoning = () => {
-            const isEmergency = prop.predicted_stockout_days <= prop.suggested_supplier.delivery_days + 2;
-            if (isEmergency) {
-              return `Betsy (Smart) Alert: Stockout expected in ${prop.predicted_stockout_days} days. I've prioritized ${prop.suggested_supplier.name} for their speed (${prop.suggested_supplier.delivery_days} days) to ensure continuity.`;
-            } else {
-              return `Betsy (Smart) Analysis: Selected ${prop.suggested_supplier.name} (€${prop.suggested_supplier.price}) as the most reliable option for delivery within ${prop.suggested_supplier.delivery_days} days.`;
-            }
+            let urgencyMsg = prop.urgency === 'critical' 
+              ? `URGENT: voorraad op in ${prop.predicted_stockout_days} dagen, levering duurt ${prop.suggested_supplier.delivery_days} dagen.` 
+              : `Voorraad onder bestelpunt (${prop.current_stock}/${prop.reorder_point}).`;
+            
+            let supplierMsg = `Gekozen voor ${prop.suggested_supplier.name} (€${prop.suggested_supplier.price} p/s) met ${Math.round(prop.suggested_supplier.reliability_score * 100)}% betrouwbaarheid. Besparing: €${prop.savings_vs_expensive.toFixed(2)} (${Math.round(prop.savings_percentage)}%).`;
+            
+            let trendMsg = prop.sales_trend === 'rising' 
+              ? `Let op: verkoop stijgt met ${Math.round(prop.sales_trend_pct)}%, extra voorraad aanbevolen.` 
+              : prop.sales_trend === 'declining' 
+                ? `Verkoop daalt (${Math.round(prop.sales_trend_pct)}%), conservatieve bestelling.` 
+                : `Verkoop is stabiel.`;
+
+            return `${urgencyMsg} ${supplierMsg} ${trendMsg}`;
           };
 
           const apiKey = process.env.GEMINI_API_KEY;
@@ -312,19 +374,22 @@ export default function App() {
 
           const ai = new GoogleGenAI({ apiKey });
           const prompt = `Je bent Betsy, een AI Inkoop Manager voor een sportwinkel. 
-          Product: ${prop.product_name}
+          Product: ${prop.product_name} (Categorie: ${prop.category})
           Huidige Voorraad: ${prop.current_stock}
-          Gemiddelde Wekelijkse Verkoop: ${prop.avg_weekly_sales}
+          Gemiddelde Wekelijkse Verkoop: ${prop.avg_weekly_sales} (Trend: ${prop.sales_trend}, ${Math.round(prop.sales_trend_pct)}%)
           Dagen tot voorraad op is: ${prop.predicted_stockout_days}
+          Urgentie: ${prop.urgency}
           Voorgestelde Leverancier: ${prop.suggested_supplier.name} (Prijs: €${prop.suggested_supplier.price}, Levertijd: ${prop.suggested_supplier.delivery_days} dagen, Betrouwbaarheid: ${prop.suggested_supplier.reliability_score * 100}%)
+          Besparing vs duurste: €${prop.savings_vs_expensive.toFixed(2)} (${Math.round(prop.savings_percentage)}%)
+          Dekkingsdagen na levering: ${prop.stock_coverage_after_order} dagen
           Alternatieven: ${prop.alternatives?.map((a: any) => `${a.name} (Prijs: €${a.price}, Levertijd: ${a.delivery_days} dagen)`).join(', ')}
           
-          Schrijf een korte, professionele redenering in het Nederlands (max 2 zinnen) waarom je deze leverancier hebt gekozen. 
-          Noem specifieke prijzen en levertijden om de keuze te rechtvaardigen. 
-          Begin met "Betsy (AI) Analyse:" of "Betsy (AI) Alert:".`;
+          Schrijf een professionele, overtuigende redenering in het Nederlands (3-4 zinnen) waarom dit een goed inkoopvoorstel is. 
+          Gebruik de concrete cijfers (besparing, dekking, trend, urgentie) om de keuze te rechtvaardigen. 
+          Begin met "Betsy's Analyse:".`;
 
           const response = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
+            model: "gemini-3-flash-preview",
             contents: prompt,
           });
 
@@ -368,8 +433,13 @@ export default function App() {
             error = result.error;
           }
           
-          if (!error) fetchData();
-          else console.error('Error updating stock:', error);
+          if (!error) {
+            setInventory(prev => prev.map(item => 
+              item.product_id === productId ? { ...item, stock_level: newStock } : item
+            ));
+          } else {
+            console.error('Error updating stock:', error);
+          }
         } catch (error) {
           console.error('Error updating stock:', error);
         } finally {
@@ -403,8 +473,13 @@ export default function App() {
             error = result.error;
           }
           
-          if (!error) fetchData();
-          else console.error('Error updating reorder point:', error);
+          if (!error) {
+            setInventory(prev => prev.map(item => 
+              item.product_id === productId ? { ...item, reorder_point: newPoint } : item
+            ));
+          } else {
+            console.error('Error updating reorder point:', error);
+          }
         } catch (error) {
           console.error('Error updating reorder point:', error);
         } finally {
