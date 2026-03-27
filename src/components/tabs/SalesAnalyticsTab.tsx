@@ -5,7 +5,7 @@
 // Ik heb ook een tabel toegevoegd die de maandelijkse data verdeelt over dagen,
 // zodat Lucas per dag kan zien wat er ongeveer verkocht is (gebaseerd op de maandtotalen).
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { 
   LineChart, 
   Line, 
@@ -17,9 +17,10 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  ReferenceDot
+  ReferenceDot,
+  ReferenceArea
 } from 'recharts';
-import { TrendingUp, TrendingDown, Minus, BarChart3, Calendar, Table as TableIcon, BrainCircuit, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, BarChart3, Calendar, Table as TableIcon, BrainCircuit, Info, ZoomIn, RotateCcw } from 'lucide-react';
 
 const formatMonth = (dateString: string) => {
   if (!dateString) return '';
@@ -38,6 +39,14 @@ const formatDate = (dateString: string, options: Intl.DateTimeFormatOptions) => 
 export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [viewMode, setViewMode] = useState<'monthly' | 'daily'>('daily');
+
+  // Zoom state
+  const [refAreaLeft, setRefAreaLeft] = useState<string | number | null>(null);
+  const [refAreaRight, setRefAreaRight] = useState<string | number | null>(null);
+  const [left, setLeft] = useState<string | number>('dataMin');
+  const [right, setRight] = useState<string | number>('dataMax');
+  const [top, setTop] = useState<string | number>('auto');
+  const [bottom, setBottom] = useState<string | number>('auto');
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -127,17 +136,52 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     return Object.values(days).sort((a, b) => a.date.localeCompare(b.date));
   }, [selectedMonth, salesData, products]);
 
+  const currentChartData = viewMode === 'monthly' ? chartData : dailyBreakdown;
+
+  // Zoom Handlers
+  const zoom = useCallback(() => {
+    let _refAreaLeft = refAreaLeft;
+    let _refAreaRight = refAreaRight;
+
+    if (_refAreaLeft === _refAreaRight || _refAreaRight === null) {
+      setRefAreaLeft(null);
+      setRefAreaRight(null);
+      return;
+    }
+
+    // xAxis domain
+    if (_refAreaLeft! > _refAreaRight!) [_refAreaLeft, _refAreaRight] = [_refAreaRight, _refAreaLeft];
+
+    setRefAreaLeft(null);
+    setRefAreaRight(null);
+    setLeft(_refAreaLeft!);
+    setRight(_refAreaRight!);
+  }, [refAreaLeft, refAreaRight]);
+
+  const zoomOut = useCallback(() => {
+    setLeft('dataMin');
+    setRight('dataMax');
+    setTop('auto');
+    setBottom('auto');
+  }, []);
+
+  // Filtered data for peak analysis based on zoom
+  const zoomedData = useMemo(() => {
+    if (left === 'dataMin' && right === 'dataMax') return currentChartData;
+    return currentChartData.filter(d => d.date >= left && d.date <= right);
+  }, [currentChartData, left, right]);
+
   // Peak Analyse Logic
   const peakAnalysis = useMemo(() => {
-    if (viewMode !== 'daily' || dailyBreakdown.length === 0) return [];
+    if (viewMode !== 'daily' || zoomedData.length === 0) return [];
     
-    const totals = dailyBreakdown.map(d => ({
+    const totals = zoomedData.map(d => ({
       date: d.date,
       total: products.reduce((sum, p) => sum + (d[p] || 0), 0)
     }));
     
     const avg = totals.reduce((sum, d) => sum + d.total, 0) / totals.length;
-    const peaks = totals.filter(d => d.total > avg * 1.4);
+    const peaks = totals.filter(d => d.total > avg * 1.3); // Slightly lower threshold for zoomed view
     
     // We voegen wat "AI" verklaringen toe aan de pieken
     const explanations: { [key: string]: string } = {
@@ -145,19 +189,23 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
       '13': 'Lokale Marathon Event - Grip Socks en Nike Air Max zijn erg populair vandaag.',
       '21': 'Start van het tennisseizoen - Wilson Tennis Rackets vliegen de deur uit.',
       '25': 'Voorjaarsvakantie Sale - Algemene piek in alle sportcategorieën.',
-      '31': 'Seizoensopening Voetbal - Grote vraag naar voetbalschoenen en accessoires.'
+      '31': 'Seizoensopening Voetbal - Grote vraag naar voetbalschoenen en accessoires.',
+      '11-28': 'Black Friday Weekend - Extreme piek in alle sportartikelen door hoge kortingen.',
+      '11-29': 'Black Friday Weekend - Extreme piek in alle sportartikelen door hoge kortingen.',
+      '11-30': 'Cyber Monday - Laatste kans op kortingen, vooral online verkoop piekt.',
+      '12-24': 'Kerstinkopen - Last-minute cadeaus voor de feestdagen.',
+      '12-26': 'Tweede Kerstdag - Start van de winteruitverkoop.'
     };
 
     return peaks.map(p => {
       const day = p.date.substring(8, 10);
+      const monthDay = p.date.substring(5, 10);
       return {
         ...p,
-        reason: explanations[day] || 'Onverklaarbare piek - Mogelijk een lokale promotie of bulkbestelling.'
+        reason: explanations[monthDay] || explanations[day] || 'Onverklaarbare piek - Mogelijk een lokale promotie of bulkbestelling.'
       };
     });
-  }, [dailyBreakdown, products, viewMode]);
-
-  const currentChartData = viewMode === 'monthly' ? chartData : dailyBreakdown;
+  }, [zoomedData, products, viewMode]);
 
   const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444'];
 
@@ -204,18 +252,37 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
               {viewMode === 'monthly' ? 'Maandelijkse prestaties over de tijd' : 'Gedetailleerd verloop van de huidige maand'}
             </p>
           </div>
-          <button 
-            onClick={() => setViewMode(viewMode === 'monthly' ? 'daily' : 'monthly')}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
-          >
-            <BarChart3 size={16} className={viewMode === 'monthly' ? 'text-emerald-500' : 'text-gray-400'} />
-            <span className="text-xs text-gray-300">{viewMode === 'monthly' ? 'Maandoverzicht' : 'Wissel naar Maand'}</span>
-          </button>
+          <div className="flex items-center gap-3">
+            {(left !== 'dataMin' || right !== 'dataMax') && (
+              <button 
+                onClick={zoomOut}
+                className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg hover:bg-rose-500/20 transition-colors text-rose-500"
+              >
+                <RotateCcw size={14} />
+                <span className="text-xs font-bold">Reset Zoom</span>
+              </button>
+            )}
+            <button 
+              onClick={() => {
+                setViewMode(viewMode === 'monthly' ? 'daily' : 'monthly');
+                zoomOut();
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+            >
+              <BarChart3 size={16} className={viewMode === 'monthly' ? 'text-emerald-500' : 'text-gray-400'} />
+              <span className="text-xs text-gray-300">{viewMode === 'monthly' ? 'Maandoverzicht' : 'Wissel naar Maand'}</span>
+            </button>
+          </div>
         </div>
 
-        <div className="h-[400px] w-full">
+        <div className="h-[400px] w-full select-none">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={currentChartData}>
+            <AreaChart 
+              data={currentChartData}
+              onMouseDown={(e) => e && setRefAreaLeft(e.activeLabel || null)}
+              onMouseMove={(e) => refAreaLeft && e && setRefAreaRight(e.activeLabel || null)}
+              onMouseUp={zoom}
+            >
               <defs>
                 {products.map((product, idx) => (
                   <linearGradient key={`grad-${idx}`} id={`color-${idx}`} x1="0" y1="0" x2="0" y2="1">
@@ -229,6 +296,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 dataKey="date" 
                 stroke="#666" 
                 fontSize={10} 
+                domain={[left, right]}
                 tickFormatter={(str) => {
                   if (!str) return '';
                   const [year, month, day] = str.split('-');
@@ -245,6 +313,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
               <YAxis 
                 stroke="#666" 
                 fontSize={10} 
+                domain={[bottom, top]}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(val) => val.toLocaleString()}
@@ -280,6 +349,9 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   strokeWidth={2}
                 />
               ))}
+              {refAreaLeft && refAreaRight ? (
+                <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#3b82f6" fillOpacity={0.1} />
+              ) : null}
             </AreaChart>
           </ResponsiveContainer>
         </div>
