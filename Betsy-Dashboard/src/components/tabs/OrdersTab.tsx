@@ -1,0 +1,73 @@
+// Hier houden we alle bestellingen bij die we hebben gedaan.
+// We kunnen een bestelling op 'Geleverd' zetten als die binnen is.
+// Dat is handig voor de voorraad, want die wordt dan automatisch bijgewerkt.
+
+import React from 'react';
+
+export function OrdersTab({ orders, deliverOrder }: any) {
+  return (
+    <div className="bg-[#141414] border border-white/5 rounded-2xl overflow-hidden">
+      <div className="p-6 border-b border-white/5">
+        <h3 className="font-semibold text-white">Bestelgeschiedenis & Tracking</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="text-gray-500 border-b border-white/5">
+              <th className="px-6 py-4 font-medium">Bestel ID</th>
+              <th className="px-6 py-4 font-medium">Product</th>
+              <th className="px-6 py-4 font-medium">Leverancier</th>
+              <th className="px-6 py-4 font-medium">Aantal</th>
+              <th className="px-6 py-4 font-medium">Status</th>
+              <th className="px-6 py-4 font-medium">Datum</th>
+              <th className="px-6 py-4 font-medium">Actie</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {orders.map((order: any, idx: number) => (
+              <tr key={idx} className="hover:bg-white/5 transition-colors">
+                <td className="px-6 py-4 text-gray-400 font-mono text-xs">#PO-{(order.id || idx).toString().padStart(4, '0')}</td>
+                <td className="px-6 py-4 text-white font-medium">{order.products?.name || order.product_name || `Product ${order.product_id}`}</td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    {(order.suppliers?.name || order.supplier_name || '').toLowerCase()?.includes('fastfootwear') && (
+                      <img src="/FastFootwear.png" alt="FastFootwear" className="h-6 object-contain bg-white rounded px-1" />
+                    )}
+                    {(order.suppliers?.name || order.supplier_name || '').toLowerCase()?.includes('globalsports') && (
+                      <img src="/GlobalSports.png" alt="GlobalSports" className="h-6 object-contain bg-white rounded px-1" />
+                    )}
+                    {(order.suppliers?.name || order.supplier_name || '').toLowerCase()?.includes('elitegear') && (
+                      <img src="/EliteGear.png" alt="EliteGear" className="h-6 object-contain bg-white rounded px-1" />
+                    )}
+                    <span>{order.suppliers?.name || order.supplier_name || `Supplier ${order.supplier_id}`}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4">{order.quantity || 0} stuks</td>
+                <td className="px-6 py-4">
+                  <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md border ${
+                    order.status === 'pending' 
+                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' 
+                    : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                  }`}>
+                    {order.status === 'pending' ? 'In Afwachting' : (order.status === 'delivered' ? 'Geleverd' : order.status)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-gray-500">{order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A'}</td>
+                <td className="px-6 py-4">
+                  {order.status === 'pending' && (
+                    <button 
+                      onClick={() => deliverOrder(order)}
+                      className="text-[10px] font-bold text-emerald-500 hover:text-emerald-400 uppercase tracking-wider"
+                    >
+                      Markeer als Geleverd
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
