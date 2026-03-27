@@ -362,22 +362,6 @@ export function InvoicesTab({ invoices, selectedInvoice, setSelectedInvoice, upd
                 </div>
               </div>
 
-              <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-6">
-                <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-3">AI Auditor Status</h4>
-                <div className="flex items-center gap-2">
-                  {selectedInvoice.ai_check_status === 'ok' ? (
-                    <>
-                      <CheckCircle2 className="text-emerald-500" size={16} />
-                      <span className="text-sm text-emerald-200">Geverifieerd & Match</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertTriangle className="text-red-500" size={16} />
-                      <span className="text-sm text-red-200">Afwijking Gedetecteerd</span>
-                    </>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </motion.div>
