@@ -121,17 +121,8 @@ export default function App() {
       const formattedInventory = (prdData || []).map((product: any) => {
         const invItem = (invData || []).find((item: any) => item.product_id === product.id);
         
-        // Bereken gemiddelde wekelijkse verkoop op basis van sales_data
-        const productSales = (slsData || []).filter((s: any) => s.product_name === product.name);
-        const totalSales = productSales.reduce((sum: number, s: any) => sum + s.sales, 0);
-        
-        // We gaan ervan uit dat 'sales' in de database omzet (revenue) is.
-        // Om naar eenheden (units) te gaan voor de voorraadvoorspelling, delen we door de basisprijs.
-        const totalUnits = product.base_price > 0 ? totalSales / product.base_price : totalSales;
-        
-        // We nemen het gemiddelde over de beschikbare data (max 4 weken)
-        // Als er geen data is, gebruiken we een default van 10 per week
-        const avgWeeklySales = productSales.length > 0 ? Number((totalUnits / Math.max(1, productSales.length / 7)).toFixed(1)) : 10;
+        // We gebruiken de avg_weekly_sales direct uit de inventory tabel (zoals getoond in Supabase)
+        const avgWeeklySales = invItem?.avg_weekly_sales || 0;
 
         return {
           id: invItem?.id,
@@ -216,7 +207,7 @@ export default function App() {
         })
         .map(item => {
           const productId = item.product_id || item.id;
-          const predicted_stockout_days = Math.max(1, Math.floor((item.stock_level / (item.avg_weekly_sales || 10)) * 7));
+          const predicted_stockout_days = Math.max(1, Math.floor((item.stock_level / (item.avg_weekly_sales || 1)) * 7));
           
           // Find specific supplier prices for this product
           let productSuppliers = (supPricesData || [])
@@ -580,7 +571,7 @@ export default function App() {
       .sort((a, b) => (b.avg_weekly_sales || 0) - (a.avg_weekly_sales || 0))[0];
     
     if (topSellingLowStock) {
-      const daysLeft = Math.floor((topSellingLowStock.stock_level || 0) / ((topSellingLowStock.avg_weekly_sales || 10) / 7));
+      const daysLeft = Math.floor((topSellingLowStock.stock_level || 0) / ((topSellingLowStock.avg_weekly_sales || 1) / 7));
       insights.push({
         type: 'warning',
         message: `${topSellingLowStock.name} out-of-stock in ${daysLeft} days`,

@@ -225,7 +225,7 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Inkooporder Referentie</label>
+                  <label className="block text-[10px] text-gray-500 uppercase tracking-widest">Inkooporder Referentie (Bestel ID)</label>
                   <div className="relative">
                     <select 
                       value={selectedInvoice?.order_id || ''}
@@ -427,7 +427,7 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
                 <thead>
                   <tr className="text-gray-500 border-b border-white/5">
                     <th className="px-6 py-4 font-medium">Factuur #</th>
-                    <th className="px-6 py-4 font-medium">Inkooporder</th>
+                    <th className="px-6 py-4 font-medium">Inkooporder (Bestel ID)</th>
                     <th className="px-6 py-4 font-medium">Leverancier</th>
                     <th className="px-6 py-4 font-medium">Datum</th>
                     <th className="px-6 py-4 font-medium text-right">Totaal</th>
