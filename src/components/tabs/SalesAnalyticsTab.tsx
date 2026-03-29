@@ -7,18 +7,17 @@
 
 import React, { useMemo, useState, useCallback } from 'react';
 import { 
-  LineChart, 
-  Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend, 
   ResponsiveContainer,
   AreaChart,
   Area,
   ReferenceDot,
-  ReferenceArea
+  ReferenceArea,
+  Brush,
+  Legend
 } from 'recharts';
 import { TrendingUp, TrendingDown, Minus, BarChart3, Calendar, Table as TableIcon, BrainCircuit, Info, ZoomIn, RotateCcw } from 'lucide-react';
 
@@ -47,6 +46,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
   const [right, setRight] = useState<string | number>('dataMax');
   const [top, setTop] = useState<string | number>('auto');
   const [bottom, setBottom] = useState<string | number>('auto');
+  const [chartType, setChartType] = useState<'stacked' | 'overlay'>('stacked');
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -291,6 +291,20 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+              <button 
+                onClick={() => setChartType('stacked')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${chartType === 'stacked' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-gray-400 hover:text-white'}`}
+              >
+                Stacked
+              </button>
+              <button 
+                onClick={() => setChartType('overlay')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${chartType === 'overlay' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-gray-400 hover:text-white'}`}
+              >
+                Overlay
+              </button>
+            </div>
             {(left !== 'dataMin' || right !== 'dataMax') && (
               <button 
                 onClick={zoomOut}
@@ -313,13 +327,14 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
           </div>
         </div>
 
-        <div className="h-[400px] w-full select-none cursor-crosshair">
+        <div className="h-[450px] w-full select-none cursor-crosshair" onDoubleClick={zoomOut}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart 
               data={currentChartData}
               onMouseDown={(e) => e && setRefAreaLeft(e.activeLabel || null)}
               onMouseMove={(e) => refAreaLeft && e && setRefAreaRight(e.activeLabel || null)}
               onMouseUp={zoom}
+              margin={{ bottom: 20 }}
             >
               <defs>
                 {products.map((product, idx) => (
@@ -369,10 +384,10 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   key={product}
                   type="monotone" 
                   dataKey={product} 
-                  stackId="1"
+                  stackId={chartType === 'stacked' ? "1" : undefined}
                   stroke={colors[idx % colors.length]} 
-                  fillOpacity={1} 
-                  fill={`url(#color-${idx})`} 
+                  fillOpacity={chartType === 'stacked' ? 1 : 0.1} 
+                  fill={chartType === 'stacked' ? `url(#color-${idx})` : colors[idx % colors.length]} 
                   strokeWidth={2}
                   activeDot={{ r: 6, strokeWidth: 0 }}
                   dot={currentChartData.length === 1}
@@ -399,6 +414,19 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   fillOpacity={0.3} 
                 />
               ) : null}
+              <Brush 
+                dataKey="date" 
+                height={30} 
+                stroke="#3b82f6" 
+                fill="#111"
+                travellerWidth={10}
+                tickFormatter={(str) => {
+                  if (!str) return '';
+                  const [year, month, day] = str.split('-');
+                  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day || '1'));
+                  return date.toLocaleDateString('nl-NL', { day: '2-digit', month: 'short' });
+                }}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
