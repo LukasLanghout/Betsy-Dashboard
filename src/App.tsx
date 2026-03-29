@@ -22,7 +22,8 @@ import { ProposalsTab } from './components/tabs/ProposalsTab';
 import { InvoicesTab } from './components/tabs/InvoicesTab';
 import { CustomersTab } from './components/tabs/CustomersTab';
 import { SalesAnalyticsTab } from './components/tabs/SalesAnalyticsTab';
-import { customerData } from './data/mockData';
+import { customerData, inventoryData, supplierData, supplierPrices } from './data/mockData';
+import { providedSalesData } from './data/providedSales';
 
 import type {
   InventoryItem, Supplier, Order, Invoice,
@@ -94,7 +95,7 @@ export default function App() {
         supabase.from('orders').select('*, products(*), suppliers(*)').order('id', { ascending: false }),
         supabase.from('invoices').select('*').order('id', { ascending: false }),
         supabase.from('supplier_prices').select('*'),
-        supabase.from('sales_data').select('*').order('date', { ascending: true }).limit(5000)
+        supabase.from('sales_data').select('id,date,product_name,sales').order('date', { ascending: false }).limit(500000)
       ]);
 
       console.log('Betsy AI Data Fetch Summary:', { 
@@ -108,43 +109,48 @@ export default function App() {
 
       if (prdData && prdData.length > 0) {
         console.log('Sample Product Item:', prdData[0]);
-      } else {
-        console.warn('WAARSCHUWING: De "products" tabel is leeg. Zonder producten werkt het dashboard niet!');
       }
 
-      if (invData && invData.length > 0) {
-        console.log('Sample Inventory Item:', invData[0]);
-      } else {
-        console.warn('WAARSCHUWING: De "inventory" tabel is leeg. De voorraad-voorspeller heeft deze data nodig!');
-      }
+      // Use provided sales data as primary source if Supabase is empty or as requested
+      // We merge them to ensure we have at least the data Lucas provided
+      let combinedSales = [...(slsData || [])];
+      
+      // Add provided data if not already present (based on date and product)
+      const existingKeys = new Set(combinedSales.map(s => `${s.date}-${s.product_name}`));
+      providedSalesData.forEach(ps => {
+        const key = `${ps.date}-${ps.product_name}`;
+        if (!existingKeys.has(key)) {
+          combinedSales.push(ps);
+        }
+      });
 
-      if (slsData && slsData.length > 0) {
-        console.log('Sample Sales Item:', slsData[0]);
-      } else {
-        console.warn('WAARSCHUWING: De "sales_data" tabel is leeg. De verkoopgrafieken zullen niets tonen.');
+      // Sort by date descending
+      combinedSales.sort((a, b) => b.date.localeCompare(a.date));
+      
+      console.log('Final Sales Data Count:', combinedSales.length);
+      if (combinedSales.length > 0) {
+        console.log('Date Range:', combinedSales[combinedSales.length - 1].date, 'to', combinedSales[0].date);
       }
+      
+      setSalesData(combinedSales);
 
-      const formattedInventory = (prdData || []).map((product: any) => {
-        const invItem = (invData || []).find((item: any) => String(item.product_id) === String(product.id));
+      // Gebruik mock data als de database leeg is (voor de demo)
+      const finalInventory = (invData && invData.length > 0) ? invData : inventoryData;
+      const finalProducts = (prdData && prdData.length > 0) ? prdData : inventoryData; 
+      const finalSuppliers = (supData && supData.length > 0) ? supData : supplierData;
+      const finalSupPrices = (supPricesData && supPricesData.length > 0) ? supPricesData : supplierPrices;
+
+      const formattedInventory = finalProducts.map((product: any) => {
+        const invItem = finalInventory.find((item: any) => String(item.product_id || item.id) === String(product.id));
         
-        if (invItem) {
-          console.log(`Mapping Product ${product.name}: Found invItem with avg_weekly_sales: ${invItem.avg_weekly_sales}`);
-        } else {
-          console.warn(`Mapping Product ${product.name}: No invItem found for product.id ${product.id}`);
-        }
-
-        // We gebruiken de avg_weekly_sales direct uit de inventory tabel (zoals getoond in Supabase)
-        // Als deze 0 is, proberen we het te berekenen op basis van de sales tabel
-        let avgWeeklySales = invItem?.avg_weekly_sales || 0;
-        if (avgWeeklySales === 0 && slsData && slsData.length > 0) {
-          const productSales = (slsData || []).filter((s: any) => String(s.product_id) === String(product.id));
-          const totalQty = productSales.reduce((sum: number, s: any) => sum + (s.quantity || 0), 0);
-          // We nemen aan dat de sales data over ongeveer 4 weken gaat voor een gemiddelde
-          avgWeeklySales = Math.round((totalQty / 4) * 10) / 10;
-        }
+        // Bereken gemiddelde wekelijkse verkoop op basis van de echte verkoopdata
+        const productSales = combinedSales.filter((s: any) => s.product_name === product.name);
+        const totalQty = productSales.reduce((sum: number, s: any) => sum + (s.sales || 0), 0);
+        const uniqueWeeks = new Set(productSales.map(s => s.date.substring(0, 7))).size || 1;
+        const avgWeeklySales = Math.round((totalQty / uniqueWeeks) / 4) || 10;
 
         return {
-          id: invItem?.id,
+          id: invItem?.id || product.id,
           product_id: product.id,
           name: product.name || 'Onbekend Product',
           category: product.category || 'Geen Categorie',
@@ -156,8 +162,8 @@ export default function App() {
       });
       setInventory(formattedInventory);
 
-      const formattedSuppliers = (supData || []).map((sup: any) => {
-        const prices = (supPricesData || []).filter((p: any) => p.supplier_id === sup.id);
+      const formattedSuppliers = finalSuppliers.map((sup: any) => {
+        const prices = finalSupPrices.filter((p: any) => p.supplier_id === sup.id);
         const avgDelivery = prices.length ? prices.reduce((sum: number, p: any) => sum + p.delivery_days, 0) / prices.length : 5;
         const avgPrice = prices.length ? prices.reduce((sum: number, p: any) => sum + p.price, 0) / prices.length : 100;
         
@@ -185,10 +191,6 @@ export default function App() {
         };
       });
       setInvoices(formattedInvoices);
-
-      if (slsData) {
-        setSalesData(slsData);
-      }
 
       if (ordData) {
         setRawOrders(ordData);

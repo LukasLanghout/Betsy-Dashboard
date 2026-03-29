@@ -1,24 +1,22 @@
 export const inventoryData = [
-  { id: 1, name: 'Laptop Pro X', category: 'Electronics', stock_level: 45, avg_weekly_sales: 12, reorder_point: 50, base_price: 1200 },
-  { id: 2, name: 'Wireless Mouse', category: 'Accessories', stock_level: 150, avg_weekly_sales: 30, reorder_point: 100, base_price: 25 },
-  { id: 3, name: 'Ergonomic Chair', category: 'Furniture', stock_level: 12, avg_weekly_sales: 5, reorder_point: 20, base_price: 350 },
-  { id: 4, name: 'USB-C Hub', category: 'Accessories', stock_level: 80, avg_weekly_sales: 25, reorder_point: 50, base_price: 45 },
-  { id: 5, name: '27" Monitor', category: 'Electronics', stock_level: 18, avg_weekly_sales: 8, reorder_point: 25, base_price: 400 },
+  { id: 1, name: 'Nike Air Max', category: 'Schoenen', stock_level: 45, avg_weekly_sales: 120, reorder_point: 50, base_price: 120 },
+  { id: 2, name: 'Adidas Predator 42', category: 'Schoenen', stock_level: 150, avg_weekly_sales: 100, reorder_point: 100, base_price: 140 },
+  { id: 3, name: 'Grip Socks', category: 'Accessoires', stock_level: 300, avg_weekly_sales: 60, reorder_point: 150, base_price: 15 },
+  { id: 4, name: 'Wilson Tennis Racket', category: 'Sportartikelen', stock_level: 25, avg_weekly_sales: 40, reorder_point: 30, base_price: 85 },
 ];
 
 export const supplierData = [
-  { id: 's1', name: 'TechCorp', category: 'Electronics', reliability_score: 95, delivery_days: 3, avg_price_index: 100 },
-  { id: 's2', name: 'GlobalSupplies', category: 'Accessories', reliability_score: 88, delivery_days: 5, avg_price_index: 90 },
-  { id: 's3', name: 'OfficeFurnish', category: 'Furniture', reliability_score: 92, delivery_days: 7, avg_price_index: 105 },
-  { id: 's4', name: 'FastElectronics', category: 'Electronics', reliability_score: 85, delivery_days: 2, avg_price_index: 110 },
+  { id: 1, name: 'Nike Wholesale', category: 'Schoenen', reliability_score: 95, delivery_days: 3, avg_price_index: 100 },
+  { id: 2, name: 'Adidas Direct', category: 'Schoenen', reliability_score: 88, delivery_days: 5, avg_price_index: 90 },
+  { id: 3, name: 'SportSupplies NL', category: 'Accessoires', reliability_score: 92, delivery_days: 7, avg_price_index: 105 },
+  { id: 4, name: 'TennisGlobal', category: 'Sportartikelen', reliability_score: 85, delivery_days: 2, avg_price_index: 110 },
 ];
 
 export const supplierPrices = [
-  { productId: 1, supplierId: 's1', price: 1150, delivery_days: 3, reliability_score: 95 },
-  { productId: 1, supplierId: 's4', price: 1200, delivery_days: 2, reliability_score: 85 },
-  { productId: 3, supplierId: 's3', price: 340, delivery_days: 7, reliability_score: 92 },
-  { productId: 5, supplierId: 's1', price: 390, delivery_days: 3, reliability_score: 95 },
-  { productId: 5, supplierId: 's4', price: 410, delivery_days: 2, reliability_score: 85 },
+  { productId: 1, supplierId: 1, price: 80, delivery_days: 3, reliability_score: 95 },
+  { productId: 2, supplierId: 2, price: 95, delivery_days: 5, reliability_score: 88 },
+  { productId: 3, supplierId: 3, price: 8, delivery_days: 7, reliability_score: 92 },
+  { productId: 4, supplierId: 4, price: 60, delivery_days: 2, reliability_score: 85 },
 ];
 
 export const orderPipelineData = [

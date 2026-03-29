@@ -37,7 +37,7 @@ const formatDate = (dateString: string, options: Intl.DateTimeFormatOptions) => 
 
 export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'monthly' | 'daily'>('daily');
+  const [viewMode, setViewMode] = useState<'monthly' | 'daily'>('monthly');
 
   // Zoom state
   const [refAreaLeft, setRefAreaLeft] = useState<string | number | null>(null);
@@ -70,8 +70,19 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     zoomOut();
   }, [selectedMonth]);
 
-  // We halen alle unieke productnamen op
-  const products = useMemo(() => Array.from(new Set(salesData.map(d => d.product_name))), [salesData]);
+  // We halen alle unieke productnamen op en pakken de top 10 voor de grafiek
+  const products = useMemo(() => {
+    const productTotals: { [key: string]: number } = {};
+    salesData.forEach(d => {
+      productTotals[d.product_name] = (productTotals[d.product_name] || 0) + d.sales;
+    });
+    const sorted = Object.entries(productTotals).sort((a, b) => b[1] - a[1]);
+    const top10 = sorted.slice(0, 10).map(p => p[0]);
+    if (sorted.length > 10) {
+      top10.push('Overig');
+    }
+    return top10;
+  }, [salesData]);
   
   // We zetten de data om in een formaat dat Recharts begrijpt (gegroepeerd per maand voor de grafiek)
   const chartData = useMemo(() => {
@@ -84,7 +95,9 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
         monthlyData[monthKey] = { date: monthKey };
         products.forEach(p => monthlyData[monthKey][p] = 0);
       }
-      monthlyData[monthKey][d.product_name] += d.sales;
+      
+      const productName = products.includes(d.product_name) ? d.product_name : 'Overig';
+      monthlyData[monthKey][productName] = (monthlyData[monthKey][productName] || 0) + d.sales;
     });
 
     return Object.values(monthlyData).sort((a, b) => a.date.localeCompare(b.date));
@@ -92,7 +105,10 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
 
   // We berekenen wat statistieken per product (gebaseerd op maandtotalen)
   const stats = useMemo(() => {
-    return products.map(product => {
+    // We pakken de top 4 voor de kaartjes
+    const top4 = products.filter(p => p !== 'Overig').slice(0, 4);
+    
+    return top4.map(product => {
       const monthlyTotals: { [key: string]: number } = {};
       salesData.filter(d => d.product_name === product).forEach(d => {
         const monthKey = d.date.substring(0, 7);
@@ -124,8 +140,11 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
   const dailyBreakdown = useMemo(() => {
     if (!selectedMonth) return [];
     
-    const monthPrefix = selectedMonth.substring(0, 7);
-    const filtered = salesData.filter(d => d.date && typeof d.date === 'string' && d.date.startsWith(monthPrefix));
+    const isAll = selectedMonth === 'all';
+    const monthPrefix = isAll ? '' : selectedMonth.substring(0, 7);
+    const filtered = isAll 
+      ? salesData 
+      : salesData.filter(d => d.date && typeof d.date === 'string' && d.date.startsWith(monthPrefix));
     
     // We groeperen per dag
     const days: { [key: string]: any } = {};
@@ -135,13 +154,26 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
         days[d.date] = { date: d.date };
         products.forEach(p => days[d.date][p] = 0);
       }
-      days[d.date][d.product_name] = (days[d.date][d.product_name] || 0) + d.sales;
+      const productName = products.includes(d.product_name) ? d.product_name : 'Overig';
+      days[d.date][productName] = (days[d.date][productName] || 0) + d.sales;
     });
 
     return Object.values(days).sort((a, b) => a.date.localeCompare(b.date));
   }, [selectedMonth, salesData, products]);
 
   const currentChartData = viewMode === 'monthly' ? chartData : dailyBreakdown;
+
+  const startIndex = useMemo(() => {
+    if (left === 'dataMin') return 0;
+    const idx = currentChartData.findIndex(d => d.date >= left);
+    return idx === -1 ? 0 : idx;
+  }, [currentChartData, left]);
+
+  const endIndex = useMemo(() => {
+    if (right === 'dataMax') return currentChartData.length - 1;
+    const idx = currentChartData.findIndex(d => d.date >= right);
+    return idx === -1 ? currentChartData.length - 1 : idx;
+  }, [currentChartData, right]);
 
   // Zoom Handlers
   const zoom = useCallback(() => {
@@ -180,24 +212,28 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
   const peakAnalysis = useMemo(() => {
     if (zoomedData.length === 0) return [];
     
-    const totals = zoomedData.map(d => ({
-      date: d.date,
-      total: products.reduce((sum, p) => sum + (d[p] || 0), 0)
-    }));
+    const totals = zoomedData.map(d => {
+      const entry: any = { date: d.date, total: 0 };
+      products.forEach(p => {
+        entry[p] = d[p] || 0;
+        entry.total += entry[p];
+      });
+      return entry;
+    });
     
-    const avg = totals.reduce((sum, d) => sum + d.total, 0) / totals.length;
+    const avg = totals.reduce((sum, d) => sum + d.total, 0) / (totals.length || 1);
     const isZoomed = left !== 'dataMin' || right !== 'dataMax';
     
     // Improved peak detection
     const peaks = totals.filter((d, i) => {
-      const isHigherThanAvg = d.total > avg * (isZoomed ? 1.1 : 1.4);
+      const isHigherThanAvg = d.total > avg * (isZoomed ? 1.05 : 1.3);
       
       // Local maximum check (especially useful when zoomed)
       if (isZoomed && totals.length > 3) {
         const prev = totals[i - 1]?.total ?? 0;
         const next = totals[i + 1]?.total ?? 0;
         const isLocalMax = d.total > prev && d.total > next;
-        return isHigherThanAvg || (isLocalMax && d.total > avg * 1.05);
+        return isHigherThanAvg || (isLocalMax && d.total > avg * 1.02);
       }
       
       return isHigherThanAvg;
@@ -222,19 +258,23 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     return peaks.map(p => {
       const day = p.date.substring(8, 10);
       const monthDay = p.date.substring(5, 10);
-      const month = p.date.substring(5, 7);
       
       let reason = explanations[monthDay] || explanations[day];
       
-      if (!reason && viewMode === 'monthly') {
+      if (!reason) {
+        // Dynamic reason based on top product
+        const topProduct = products.reduce((prev, curr) => (p[curr] || 0) > (p[prev] || 0) ? curr : prev, products[0]);
+        reason = `Piek in verkoop, voornamelijk gedreven door ${topProduct}.`;
+      }
+      
+      if (viewMode === 'monthly') {
         const monthNames: {[key: string]: string} = {
-          '01': 'Januari Sale & Goede Voornemens',
-          '06': 'Zomerseizoen & Buitensporten',
-          '07': 'Vakantieperiode & Tour de France hype',
-          '11': 'Black Friday & Voorbereiding Feestdagen',
-          '12': 'Kerstinkopen & Eindejaarsbonus'
+          '01': 'Januari', '02': 'Februari', '03': 'Maart', '04': 'April',
+          '05': 'Mei', '06': 'Juni', '07': 'Juli', '08': 'Augustus',
+          '09': 'September', '10': 'Oktober', '11': 'November', '12': 'December'
         };
-        reason = monthNames[month] || 'Seizoensgebonden groei in deze periode.';
+        const month = p.date.substring(5, 7);
+        reason = `Bovengemiddelde verkoop in ${monthNames[month] || month}.`;
       }
 
       return {
@@ -420,6 +460,18 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 stroke="#3b82f6" 
                 fill="#111"
                 travellerWidth={10}
+                startIndex={startIndex}
+                endIndex={endIndex}
+                onChange={(e) => {
+                  if (e && e.startIndex !== undefined && e.endIndex !== undefined) {
+                    const start = currentChartData[e.startIndex]?.date;
+                    const end = currentChartData[e.endIndex]?.date;
+                    if (start && end) {
+                      setLeft(start);
+                      setRight(end);
+                    }
+                  }
+                }}
                 tickFormatter={(str) => {
                   if (!str) return '';
                   const [year, month, day] = str.split('-');
@@ -485,6 +537,7 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="bg-transparent text-sm text-white outline-none cursor-pointer"
               >
+                <option value="all" className="bg-[#141414]">Alle Dagen</option>
                 {availableMonths.map(date => (
                   <option key={date} value={date} className="bg-[#141414]">
                     {formatMonth(date)}
