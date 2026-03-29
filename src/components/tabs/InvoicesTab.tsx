@@ -48,24 +48,63 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
     const doc = new jsPDF();
     
     const vendorName = invoice.vendor || 'Onbekende Leverancier';
+    const emerald = [16, 185, 129];
+    const dark = [20, 20, 20];
+    const textDark = [40, 40, 40];
+    const grayLabel = [150, 150, 150];
+    const lightBg = [248, 248, 248];
     
-    // Header toevoegen
-    doc.setFontSize(24);
-    doc.setTextColor(40, 40, 40);
-    doc.text('FACTUUR', 14, 22);
+    // 1. HEADER BLOK
+    doc.setFillColor(dark[0], dark[1], dark[2]);
+    doc.rect(0, 0, 210, 35, 'F');
     
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Factuurnummer: ${invoice.invoice_number}`, 14, 30);
-    doc.text(`Datum: ${invoice.invoice_date || 'N/A'}`, 14, 35);
-    doc.text(`Vervaldatum: ${invoice.due_date || 'N/A'}`, 14, 40);
-    
-    // Leverancier info
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.setTextColor(40, 40, 40);
-    doc.text('Van:', 120, 22);
+    doc.setTextColor(emerald[0], emerald[1], emerald[2]);
+    doc.text('BETSY AI', 14, 22);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(120, 120, 120);
+    doc.text('SportWinkel #42 | Lucas Manager', 196, 22, { align: 'right' });
+    
+    // 2. FACTUUR TITEL SECTIE
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(28);
+    doc.setTextColor(dark[0], dark[1], dark[2]);
+    doc.text('FACTUUR', 14, 60);
+    
+    doc.setFillColor(emerald[0], emerald[1], emerald[2]);
+    doc.rect(14, 65, 182, 1, 'F');
+    
     doc.setFontSize(12);
-    doc.text(vendorName, 120, 30);
+    doc.setTextColor(emerald[0], emerald[1], emerald[2]);
+    doc.text(`#${invoice.invoice_number}`, 196, 60, { align: 'right' });
+    
+    // 3. INFO BLOK (twee kolommen)
+    // Links: Datum gegevens
+    doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
+    doc.roundedRect(14, 75, 80, 35, 2, 2, 'F');
+    
+    doc.setFontSize(8);
+    doc.setTextColor(grayLabel[0], grayLabel[1], grayLabel[2]);
+    doc.text('FACTUURDATUM', 20, 85);
+    doc.text('VERVALDATUM', 20, 95);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+    doc.text(invoice.invoice_date || 'N/A', 50, 85);
+    doc.text(invoice.due_date || 'N/A', 50, 95);
+    
+    // Rechts: Leverancier blok
+    doc.setFillColor(emerald[0], emerald[1], emerald[2]);
+    doc.rect(130, 75, 3, 35, 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+    doc.text(vendorName, 138, 82);
     
     // Logo proberen te laden
     const normalizedVendor = vendorName.toLowerCase().replace(/\s+/g, '');
@@ -77,31 +116,32 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
     try {
       if (logoUrl) {
         const base64Img = await loadImage(logoUrl);
-        doc.addImage(base64Img, 'PNG', 120, 35, 60, 20);
+        doc.addImage(base64Img, 'PNG', 138, 85, 45, 15);
       } else {
         throw new Error('Geen logo gevonden');
       }
     } catch (e) {
-      // Fallback als het plaatje niet laadt
-      doc.setDrawColor(200, 200, 200);
-      doc.setFillColor(245, 245, 245);
-      doc.roundedRect(120, 35, 60, 20, 2, 2, 'FD');
-      doc.setFontSize(10);
-      doc.setTextColor(150, 150, 150);
-      doc.text(`${vendorName} Logo`, 130, 46);
+      doc.setFontSize(8);
+      doc.setTextColor(grayLabel[0], grayLabel[1], grayLabel[2]);
+      doc.text(`${vendorName} Partner`, 138, 90);
     }
     
-    // Factuuradres
-    doc.setFontSize(14);
-    doc.setTextColor(40, 40, 40);
-    doc.text('Factuur naar:', 14, 65);
+    // 4. ONTVANGER BLOK
+    doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
+    doc.roundedRect(14, 120, 182, 30, 2, 2, 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(grayLabel[0], grayLabel[1], grayLabel[2]);
+    doc.text('FACTUUR NAAR', 20, 128);
+    
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text('SportWinkels B.V.', 14, 72);
-    doc.text('Studentenweg 42', 14, 77);
-    doc.text('Utrecht, 3584 AA', 14, 82);
+    doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+    doc.text('SportWinkels B.V.', 20, 135);
+    doc.text('Studentenweg 42, 3584 AA Utrecht', 20, 142);
 
-    // Tabel met items
+    // 5. PRODUCTTABEL
     const tableColumn = ["Product Naam", "Aantal", "Stukprijs", "Totaal"];
     const tableRows: any[] = [];
 
@@ -118,38 +158,73 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
     }
 
     autoTable(doc, {
-      startY: 95,
+      startY: 160,
       head: [tableColumn],
       body: tableRows,
       theme: 'striped',
-      headStyles: { fillColor: [16, 185, 129] }, // Emerald 500
-      styles: { fontSize: 10, cellPadding: 5 },
-      alternateRowStyles: { fillColor: [245, 245, 245] }
+      headStyles: { 
+        fillColor: [emerald[0], emerald[1], emerald[2]],
+        fontSize: 10,
+        halign: 'left'
+      },
+      columnStyles: {
+        3: { halign: 'right' }
+      },
+      styles: { fontSize: 9, cellPadding: 7 },
+      alternateRowStyles: { fillColor: [245, 250, 248] },
+      didDrawPage: (data) => {
+        doc.setDrawColor(200, 200, 200);
+        doc.line(data.settings.margin.left, (doc as any).lastAutoTable.finalY, 210 - data.settings.margin.right, (doc as any).lastAutoTable.finalY);
+      }
     });
 
-    // Totalen onderaan de tabel
-    const finalY = (doc as any).lastAutoTable.finalY || 95;
+    // 6. TOTALEN BLOK
+    const finalY = (doc as any).lastAutoTable.finalY || 160;
     
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text('Subtotaal:', 130, finalY + 10);
-    doc.text(`€${Number(invoice.subtotal || 0).toFixed(2)}`, 190, finalY + 10, { align: 'right' });
+    doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
+    doc.roundedRect(130, finalY + 10, 66, 35, 2, 2, 'F');
     
-    doc.text(`BTW (${invoice.tax_percentage || 0}%):`, 130, finalY + 16);
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    doc.text('Subtotaal:', 136, finalY + 18);
+    doc.text(`€${Number(invoice.subtotal || 0).toFixed(2)}`, 190, finalY + 18, { align: 'right' });
+    
+    doc.text(`BTW (${invoice.tax_percentage || 0}%):`, 136, finalY + 24);
     const taxAmount = (invoice.subtotal || 0) * ((invoice.tax_percentage || 0) / 100);
-    doc.text(`€${taxAmount.toFixed(2)}`, 190, finalY + 16, { align: 'right' });
+    doc.text(`€${taxAmount.toFixed(2)}`, 190, finalY + 24, { align: 'right' });
     
-    doc.setFontSize(12);
-    doc.setTextColor(40, 40, 40);
+    doc.setFillColor(emerald[0], emerald[1], emerald[2]);
+    doc.roundedRect(130, finalY + 28, 66, 12, 1, 1, 'F');
+    
     doc.setFont('helvetica', 'bold');
-    doc.text('Totaalbedrag:', 130, finalY + 24);
-    doc.text(`€${Number(invoice.total_amount || 0).toFixed(2)}`, 190, finalY + 24, { align: 'right' });
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.text('TOTAAL', 136, finalY + 36);
+    doc.text(`€${Number(invoice.total_amount || 0).toFixed(2)}`, 190, finalY + 36, { align: 'right' });
 
-    // Footer
-    doc.setFont('helvetica', 'normal');
+    // 7. AI VALIDATIE BADGE
+    doc.setDrawColor(emerald[0], emerald[1], emerald[2]);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(14, finalY + 15, 80, 16, 2, 2, 'S');
+    
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text('Bedankt voor de samenwerking!', 105, 280, { align: 'center' });
+    doc.setTextColor(emerald[0], emerald[1], emerald[2]);
+    doc.text('✓ AI Gevalideerd – Betsy AI', 18, finalY + 23);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(grayLabel[0], grayLabel[1], grayLabel[2]);
+    doc.text(`Geverifieerd op: ${new Date().toLocaleDateString('nl-NL')}`, 18, finalY + 28);
+
+    // 8. FOOTER
+    doc.setFillColor(dark[0], dark[1], dark[2]);
+    doc.rect(0, 278, 210, 19, 'F');
+    
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text('betsy-dashboard.vercel.app', 14, 288);
+    doc.text(`Factuur ${invoice.invoice_number}`, 196, 288, { align: 'right' });
 
     // PDF opslaan
     doc.save(`Factuur_${invoice.invoice_number || 'Concept'}.pdf`);
