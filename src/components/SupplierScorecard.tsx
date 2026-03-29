@@ -26,16 +26,16 @@ export function SupplierScorecard({ data }: SupplierScorecardProps) {
     <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 h-[450px] flex flex-col group transition-all hover:border-white/10">
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h3 className="text-white font-bold text-lg tracking-tight">Leverancier Strategische Matrix</h3>
-          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Prijs vs Betrouwbaarheid vs Snelheid</p>
+          <h3 className="text-white font-bold text-2xl tracking-tight">Leverancier Strategische Matrix</h3>
+          <p className="text-sm text-gray-500 font-bold uppercase tracking-widest mt-1">Prijs vs Betrouwbaarheid vs Snelheid</p>
         </div>
-        <div className="flex gap-4 text-[10px] font-bold uppercase tracking-widest">
+        <div className="flex gap-6 text-xs font-bold uppercase tracking-widest">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-indigo-500" />
+            <div className="w-3 h-3 rounded-full bg-indigo-500" />
             <span className="text-gray-400">Betrouwbaar</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <div className="w-3 h-3 rounded-full bg-emerald-500" />
             <span className="text-gray-400">Snel</span>
           </div>
         </div>
@@ -50,18 +50,18 @@ export function SupplierScorecard({ data }: SupplierScorecardProps) {
               dataKey="price" 
               name="Prijs Index" 
               unit="" 
-              stroke="#4b5563" 
-              fontSize={10}
-              label={{ value: 'Prijs Index (Lager is Beter)', position: 'bottom', fill: '#4b5563', fontSize: 10, offset: 0 }}
+              stroke="#9ca3af" 
+              fontSize={12}
+              label={{ value: 'Prijs Index (Lager is Beter)', position: 'bottom', fill: '#9ca3af', fontSize: 12, offset: 0 }}
             />
             <YAxis 
               type="number" 
               dataKey="reliability" 
               name="Betrouwbaarheid" 
               unit="%" 
-              stroke="#4b5563" 
-              fontSize={10}
-              label={{ value: 'Betrouwbaarheid %', angle: -90, position: 'insideLeft', fill: '#4b5563', fontSize: 10 }}
+              stroke="#9ca3af" 
+              fontSize={12}
+              label={{ value: 'Betrouwbaarheid %', angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 12 }}
             />
             <ZAxis type="number" dataKey="z" range={[100, 1000]} name="Snelheid Score" />
             <Tooltip 
@@ -70,12 +70,12 @@ export function SupplierScorecard({ data }: SupplierScorecardProps) {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-[#1a1a1a] border border-white/10 p-3 rounded-lg shadow-2xl">
-                      <p className="text-white font-bold text-xs mb-2 uppercase tracking-wider">{data.name}</p>
-                      <div className="space-y-1">
-                        <p className="text-[10px] text-gray-400">Prijs Index: <span className="text-white font-mono">{data.price}</span></p>
-                        <p className="text-[10px] text-gray-400">Betrouwbaarheid: <span className="text-emerald-400 font-mono">{data.reliability}%</span></p>
-                        <p className="text-[10px] text-gray-400">Levertijd: <span className="text-indigo-400 font-mono">{data.delivery} dagen</span></p>
+                    <div className="bg-[#1a1a1a] border border-white/10 p-4 rounded-xl shadow-2xl">
+                      <p className="text-white font-bold text-sm mb-3 uppercase tracking-wider">{data.name}</p>
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-400">Prijs Index: <span className="text-white font-mono font-bold">{data.price}</span></p>
+                        <p className="text-xs text-gray-400">Betrouwbaarheid: <span className="text-emerald-400 font-mono font-bold">{data.reliability}%</span></p>
+                        <p className="text-xs text-gray-400">Levertijd: <span className="text-indigo-400 font-mono font-bold">{data.delivery} dagen</span></p>
                       </div>
                     </div>
                   );
@@ -93,17 +93,17 @@ export function SupplierScorecard({ data }: SupplierScorecardProps) {
                   strokeWidth={2}
                 />
               ))}
-              <LabelList dataKey="name" position="top" fill="#9ca3af" fontSize={9} offset={10} />
+              <LabelList dataKey="name" position="top" fill="#9ca3af" fontSize={12} offset={10} />
             </Scatter>
           </ScatterChart>
         </ResponsiveContainer>
       </div>
       
       <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
-        <p className="text-[9px] text-gray-500 font-medium italic">Het kwadrant rechtsboven laat de beste strategische partners zien.</p>
-        <div className="flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Doel Zone</span>
+        <p className="text-xs text-gray-500 font-medium italic">Het kwadrant rechtsboven laat de beste strategische partners zien.</p>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="text-xs text-gray-400 font-bold uppercase tracking-tighter">Doel Zone</span>
         </div>
       </div>
     </div>

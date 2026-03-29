@@ -32,9 +32,9 @@ export function LowStockAlerts({ inventory, onDrillDown }: LowStockAlertsProps) 
               className="group flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer"
             >
               <div>
-                <h4 className="text-white font-medium text-sm">{item.name}</h4>
-                <div className="flex gap-3 mt-1 text-xs">
-                  <span className="text-rose-400 font-medium">Voorraad: {item.stock_level}</span>
+                <h4 className="text-white font-bold text-lg">{item.name}</h4>
+                <div className="flex gap-4 mt-1 text-base">
+                  <span className="text-rose-400 font-bold">Voorraad: {item.stock_level}</span>
                   <span className="text-gray-500">|</span>
                   <span className="text-gray-400">Bestelpunt: {item.reorder_point}</span>
                 </div>

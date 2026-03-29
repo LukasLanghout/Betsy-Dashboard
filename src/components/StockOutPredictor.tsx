@@ -27,16 +27,16 @@ export function StockOutPredictor({ data }: StockOutPredictorProps) {
   }
 
   return (
-    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 h-[400px] flex flex-col">
-      <h3 className="text-white font-semibold mb-6">Voorraad-op Voorspeller (Weken)</h3>
+    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 h-[450px] flex flex-col">
+      <h3 className="text-white font-bold text-2xl mb-6">Voorraad-op Voorspeller (Weken)</h3>
       <div className="flex-1 w-full min-h-0 min-w-0">
         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-          <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
+          <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 30, left: 60, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" horizontal={false} />
-            <XAxis type="number" stroke="#9ca3af" />
-            <YAxis dataKey="name" type="category" stroke="#9ca3af" width={100} tick={{fill: '#9ca3af', fontSize: 12}} />
+            <XAxis type="number" stroke="#9ca3af" fontSize={14} />
+            <YAxis dataKey="name" type="category" stroke="#9ca3af" width={120} tick={{fill: '#9ca3af', fontSize: 14}} />
             <Tooltip 
-              contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', borderRadius: '8px' }}
+              contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', borderRadius: '12px', fontSize: '14px' }}
               itemStyle={{ color: '#fff' }}
               cursor={{fill: '#ffffff10'}}
             />

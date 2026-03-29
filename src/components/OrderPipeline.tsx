@@ -28,8 +28,8 @@ export function OrderPipeline({ data }: OrderPipelineProps) {
   return (
     <div className="bg-[#141414] border border-white/5 rounded-2xl p-8 h-[450px] flex flex-col group transition-all hover:border-white/10">
       <div className="mb-8">
-        <h3 className="text-white font-bold text-lg tracking-tight">Bestellingen Pipeline</h3>
-        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Operationele Doorloop & Knelpunten</p>
+        <h3 className="text-white font-bold text-2xl tracking-tight">Bestellingen Pipeline</h3>
+        <p className="text-sm text-gray-500 font-bold uppercase tracking-widest mt-1">Operationele Doorloop & Knelpunten</p>
       </div>
       
       <div className="flex-1 w-full min-h-0 min-w-0">
@@ -40,14 +40,14 @@ export function OrderPipeline({ data }: OrderPipelineProps) {
             <YAxis 
               dataKey="stage" 
               type="category" 
-              stroke="#4b5563" 
-              fontSize={10} 
+              stroke="#9ca3af" 
+              fontSize={14} 
               tickLine={false}
               axisLine={false}
             />
             <Tooltip 
               cursor={{fill: '#ffffff05'}}
-              contentStyle={{ backgroundColor: '#1a1a1a', borderColor: '#ffffff10', color: '#fff', borderRadius: '8px', fontSize: '10px' }}
+              contentStyle={{ backgroundColor: '#1a1a1a', borderColor: '#ffffff10', color: '#fff', borderRadius: '12px', fontSize: '14px' }}
             />
             <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={32}>
               {chartData.map((entry, index) => (
@@ -61,8 +61,8 @@ export function OrderPipeline({ data }: OrderPipelineProps) {
       <div className="mt-4 grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
         {chartData.map((d, i) => (
           <div key={i} className="text-center">
-            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter mb-1">{d.stage}</p>
-            <p className="text-xl font-bold text-white">{d.count}</p>
+            <p className="text-xs text-gray-500 font-bold uppercase tracking-tighter mb-1">{d.stage}</p>
+            <p className="text-3xl font-bold text-white">{d.count}</p>
           </div>
         ))}
       </div>

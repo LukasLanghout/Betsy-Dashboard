@@ -24,15 +24,15 @@ export function KPICard({ title, value, icon, trend, trendUp, className }: KPICa
         </div>
         {/* Hier checken we of er een trend is om te laten zien */}
         {trend && (
-          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest", 
+          <span className={cn("text-xs font-bold px-2 py-1 rounded-full uppercase tracking-widest", 
             trendUp ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500")}>
             {trend}
           </span>
         )}
       </div>
       <div className="space-y-1">
-        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.15em]">{title}</p>
-        <p className="text-3xl font-bold text-white tracking-tight">{value}</p>
+        <p className="text-sm font-bold text-gray-500 uppercase tracking-[0.15em]">{title}</p>
+        <p className="text-4xl font-bold text-white tracking-tight">{value}</p>
       </div>
     </div>
   );

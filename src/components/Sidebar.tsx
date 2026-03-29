@@ -83,16 +83,16 @@ export function Sidebar({ activeTab, setActiveTab, setIsLoggedIn, proposalsCount
           badge={invoicesIssueCount}
         />
         <div className="pt-4 pb-2">
-          <p className="px-4 text-[10px] font-bold text-gray-600 uppercase tracking-widest">Voorraad</p>
+          <p className="px-4 text-xs font-bold text-gray-600 uppercase tracking-widest">Voorraad</p>
         </div>
         <NavItem 
-          icon={<Package size={20} />} 
+          icon={<Package size={22} />} 
           label="Voorraadniveaus" 
           active={activeTab === 'inventory'}
           onClick={() => setActiveTab('inventory')} 
         />
         <NavItem 
-          icon={<Truck size={20} />} 
+          icon={<Truck size={22} />} 
           label="Leveranciers" 
           active={activeTab === 'suppliers'}
           onClick={() => setActiveTab('suppliers')} 
@@ -101,15 +101,15 @@ export function Sidebar({ activeTab, setActiveTab, setIsLoggedIn, proposalsCount
 
       {/* Gebruikersprofiel onderaan */}
       <div className="p-4 mt-auto border-t border-white/5">
-        <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white">
+        <div className="flex items-center gap-3 p-4 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-sm font-bold text-white">
             LM
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">Lucas Manager</p>
+            <p className="text-base font-medium text-white truncate">Lucas Manager</p>
             <p className="text-xs text-gray-500 truncate">SportWinkel #42</p>
           </div>
-          <LogOut size={16} className="text-gray-600" onClick={() => setIsLoggedIn(false)} />
+          <LogOut size={20} className="text-gray-600" onClick={() => setIsLoggedIn(false)} />
         </div>
       </div>
     </aside>
@@ -121,17 +121,17 @@ function NavItem({ icon, label, active, onClick, badge }: { icon: React.ReactNod
   return (
     <button 
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+      className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl transition-all ${
         active 
         ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
         : 'text-gray-500 hover:text-gray-300 hover:bg-white/5 border border-transparent'
       }`}
     >
       {icon}
-      <span className="text-sm font-medium flex-1 text-left">{label}</span>
+      <span className="text-base font-medium flex-1 text-left">{label}</span>
       {/* Als er een badge is (zoals bij nieuwe voorstellen), laten we die zien */}
       {badge !== undefined && badge > 0 && (
-        <span className="bg-emerald-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+        <span className="bg-emerald-500 text-black text-xs font-bold px-2 py-0.5 rounded-full">
           {badge}
         </span>
       )}

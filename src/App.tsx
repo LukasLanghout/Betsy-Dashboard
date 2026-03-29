@@ -935,11 +935,13 @@ export default function App() {
                       onDrillDown={(product) => setDrillDownProduct(product)} 
                     />
                   </div>
-                  <div className="h-[300px]">
+                  <div className="h-[500px]">
                     <AIInsights 
                       inventory={filteredInventory} 
                       suppliers={suppliers} 
                       orders={orders} 
+                      invoices={invoices}
+                      proposals={proposals}
                     />
                   </div>
                 </div>

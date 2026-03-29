@@ -31,8 +31,8 @@ export function ExecutiveInsights({ insights }: { insights: Insight[] }) {
             {insight.icon}
           </div>
           <div>
-            <p className="text-sm font-bold leading-tight">{insight.message}</p>
-            <p className="text-[10px] opacity-70 mt-1 uppercase tracking-wider font-medium">{insight.subtext}</p>
+            <p className="text-lg font-bold leading-tight">{insight.message}</p>
+            <p className="text-sm opacity-70 mt-1 uppercase tracking-wider font-semibold">{insight.subtext}</p>
           </div>
         </div>
       ))}
