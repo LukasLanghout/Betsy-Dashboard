@@ -164,12 +164,14 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
   const currentChartData = viewMode === 'monthly' ? chartData : dailyBreakdown;
 
   const startIndex = useMemo(() => {
+    if (currentChartData.length === 0) return 0;
     if (left === 'dataMin') return 0;
     const idx = currentChartData.findIndex(d => d.date >= left);
     return idx === -1 ? 0 : idx;
   }, [currentChartData, left]);
 
   const endIndex = useMemo(() => {
+    if (currentChartData.length === 0) return 0;
     if (right === 'dataMax') return currentChartData.length - 1;
     const idx = currentChartData.findIndex(d => d.date >= right);
     return idx === -1 ? currentChartData.length - 1 : idx;
@@ -215,8 +217,9 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
     const totals = zoomedData.map(d => {
       const entry: any = { date: d.date, total: 0 };
       products.forEach(p => {
-        entry[p] = d[p] || 0;
-        entry.total += entry[p];
+        const val = Number(d[p]) || 0;
+        entry[p] = val;
+        entry.total += val;
       });
       return entry;
     });
@@ -371,8 +374,8 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart 
               data={currentChartData}
-              onMouseDown={(e) => e && setRefAreaLeft(e.activeLabel || null)}
-              onMouseMove={(e) => refAreaLeft && e && setRefAreaRight(e.activeLabel || null)}
+              onMouseDown={(e) => e && e.activeLabel && setRefAreaLeft(e.activeLabel)}
+              onMouseMove={(e) => refAreaLeft && e && e.activeLabel && setRefAreaRight(e.activeLabel)}
               onMouseUp={zoom}
               margin={{ bottom: 20 }}
             >

@@ -171,15 +171,15 @@ export function InvoicesTab({ invoices, orders, selectedInvoice, setSelectedInvo
         3: { halign: 'right' }
       },
       styles: { fontSize: 9, cellPadding: 7 },
-      alternateRowStyles: { fillColor: [245, 250, 248] },
-      didDrawPage: (data) => {
-        doc.setDrawColor(200, 200, 200);
-        doc.line(data.settings.margin.left, (doc as any).lastAutoTable.finalY, 210 - data.settings.margin.right, (doc as any).lastAutoTable.finalY);
-      }
+      alternateRowStyles: { fillColor: [245, 250, 248] }
     });
 
     // 6. TOTALEN BLOK
     const finalY = (doc as any).lastAutoTable.finalY || 160;
+    
+    // Draw a subtle line at the end of the table
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, finalY, 196, finalY);
     
     doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
     doc.roundedRect(130, finalY + 10, 66, 35, 2, 2, 'F');
