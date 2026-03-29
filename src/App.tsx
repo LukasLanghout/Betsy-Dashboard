@@ -928,28 +928,28 @@ export default function App() {
                 <div className="lg:col-span-2">
                   <StockOutPredictor data={filteredInventory} />
                 </div>
-                <div className="lg:col-span-1 flex flex-col gap-6">
-                  <div className="flex-1">
-                    <LowStockAlerts 
-                      inventory={filteredInventory} 
-                      onDrillDown={(product) => setDrillDownProduct(product)} 
-                    />
-                  </div>
-                  <div className="h-[500px]">
-                    <AIInsights 
-                      inventory={filteredInventory} 
-                      suppliers={suppliers} 
-                      orders={orders} 
-                      invoices={invoices}
-                      proposals={proposals}
-                    />
-                  </div>
+                <div className="lg:col-span-1">
+                  <LowStockAlerts 
+                    inventory={filteredInventory} 
+                    onDrillDown={(product) => setDrillDownProduct(product)} 
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <SupplierScorecard data={suppliers} />
                 <OrderPipeline data={orders} />
+              </div>
+
+              {/* AI Chat Section - Full Width at the bottom */}
+              <div className="h-[600px] mt-8">
+                <AIInsights 
+                  inventory={filteredInventory} 
+                  suppliers={suppliers} 
+                  orders={orders} 
+                  invoices={invoices}
+                  proposals={proposals}
+                />
               </div>
             </div>
           )}
