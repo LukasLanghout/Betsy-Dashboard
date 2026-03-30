@@ -46,7 +46,6 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
   const [right, setRight] = useState<string | number>('dataMax');
   const [top, setTop] = useState<string | number>('auto');
   const [bottom, setBottom] = useState<string | number>('auto');
-  const [chartType, setChartType] = useState<'stacked' | 'overlay'>('stacked');
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -334,20 +333,6 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
-              <button 
-                onClick={() => setChartType('stacked')}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${chartType === 'stacked' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-gray-400 hover:text-white'}`}
-              >
-                Stacked
-              </button>
-              <button 
-                onClick={() => setChartType('overlay')}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${chartType === 'overlay' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-gray-400 hover:text-white'}`}
-              >
-                Overlay
-              </button>
-            </div>
             {(left !== 'dataMin' || right !== 'dataMax') && (
               <button 
                 onClick={zoomOut}
@@ -427,10 +412,10 @@ export function SalesAnalyticsTab({ salesData }: { salesData: any[] }) {
                   key={product}
                   type="monotone" 
                   dataKey={product} 
-                  stackId={chartType === 'stacked' ? "1" : undefined}
+                  stackId="1"
                   stroke={colors[idx % colors.length]} 
-                  fillOpacity={chartType === 'stacked' ? 1 : 0.1} 
-                  fill={chartType === 'stacked' ? `url(#color-${idx})` : colors[idx % colors.length]} 
+                  fillOpacity={1} 
+                  fill={`url(#color-${idx})`} 
                   strokeWidth={2}
                   activeDot={{ r: 6, strokeWidth: 0 }}
                   dot={currentChartData.length === 1}
