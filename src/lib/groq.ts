@@ -47,7 +47,7 @@ export async function generateGroqCompletion(
         model,
         messages,
         temperature: 0.3,
-        max_tokens: 250,
+        max_tokens: 2048,
       }),
     });
 

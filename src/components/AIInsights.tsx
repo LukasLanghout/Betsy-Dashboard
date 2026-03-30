@@ -45,8 +45,14 @@ export function AIInsights({ inventory, suppliers, orders, invoices = [], propos
     const topProductsBySales = [...inventory].sort((a, b) => (b.avg_weekly_sales || 0) - (a.avg_weekly_sales || 0)).slice(0, 5);
     const invoiceAnomalies = invoices.filter(inv => inv.ai_check_status === 'error_detected').length;
 
+    // Volledige inventarislijst voor de AI (compact geformatteerd)
+    const inventoryList = inventory.map(i => 
+      `${i.name}: Voorraad=${i.stock_level}, Bestelpunt=${i.reorder_point}, Verkoop=${i.avg_weekly_sales}/wk`
+    ).join(' | ');
+
     return `
       Huidige Status van de Supply Chain:
+      - Volledige Voorraadlijst: ${inventoryList}
       - Lage Voorraad: ${lowStockItems.length} items (${lowStockItems.map(i => i.name).join(', ')})
       - KRITIEKE Voorraad (minder dan 50% van bestelpunt): ${criticalStock.length} items (${criticalStock.map(i => i.name).join(', ')})
       - Totaal aantal unieke producten: ${inventory.length}
